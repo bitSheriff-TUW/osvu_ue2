@@ -1,0 +1,6 @@
+main
+*.o
+*.obj
+doc/_output/html
+*.tar.gz
+vgcore.*

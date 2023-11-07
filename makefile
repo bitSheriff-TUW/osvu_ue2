@@ -16,7 +16,7 @@ CFLAGS += -D_SVID_SOURCE -D_POSIX_C_SOURCE=200809L
 CFLAGS += -c -g
 
 LFLAGS = -g						# linking flags
-TARGET = forksort
+TARGET = fb_arc_set
 
 TEST_LIBS = -lcunit # Libraries needed for the test
 TEST_TARGET = test
