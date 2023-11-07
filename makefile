@@ -23,6 +23,7 @@ TEST_TARGET = test
 
 ALL_OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c))
 
+# remove the other "main application file" from the sources, so the correct one will get used as the entry point
 GEN_OBJS = $(filter-out supervisor.o, $(ALL_OBJECTS))
 SUP_OBJS = $(filter-out generator.o, $(ALL_OBJECTS))
 
