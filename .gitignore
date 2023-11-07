@@ -4,3 +4,5 @@ main
 doc/_output/html
 *.tar.gz
 vgcore.*
+generator
+supervisor

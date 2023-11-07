@@ -15,23 +15,33 @@ CFLAGS += -D_DEFAULT_SOURCE -D_BSD_SOURCE
 CFLAGS += -D_SVID_SOURCE -D_POSIX_C_SOURCE=200809L
 CFLAGS += -c -g
 
-LFLAGS = -g -pthread -lm		# linking flags
+LFLAGS = -g -pthread		# linking flags
 TARGET = fb_arc_set
 
 TEST_LIBS = -lcunit # Libraries needed for the test
 TEST_TARGET = test
 
-OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c))
+ALL_OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c))
+
+GEN_OBJS = $(filter-out supervisor.o, $(ALL_OBJECTS))
+SUP_OBJS = $(filter-out generator.o, $(ALL_OBJECTS))
+
 SOURCES = $(wildcard *.c)
 HEADERS = $(wildcard *.h)
 
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+generator: $(GEN_OBJS)
+	$(CC) $(LFLAGS) $(LIBS) $^ -o $@
 
-all: $(OBJECTS)
-	echo "Linking..."
-	$(CC) $(LFLAGS) $(OBJECTS) $(LIBS) -o $(TARGET)
+supervisor: $(SUP_OBJS)
+	$(CC) $(LFLAGS) $(LIBS) $^ -o $@
+
+# all: $(OBJECTS)
+# 	echo "Linking..."
+# 	$(CC) $(LFLAGS) $(OBJECTS) $(LIBS) -o $(TARGET)
+all: generator supervisor
 
 
 debug: CFLAGS += -DDEBUG -g
