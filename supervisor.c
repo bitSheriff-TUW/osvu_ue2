@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "debug.h"
+#include "errors.h"
 
 int main(int argc, char* argv[])
 {
