@@ -15,7 +15,7 @@ CFLAGS += -D_DEFAULT_SOURCE -D_BSD_SOURCE
 CFLAGS += -D_SVID_SOURCE -D_POSIX_C_SOURCE=200809L
 CFLAGS += -c -g
 
-LFLAGS = -g						# linking flags
+LFLAGS = -g -pthread -lm		# linking flags
 TARGET = fb_arc_set
 
 TEST_LIBS = -lcunit # Libraries needed for the test
