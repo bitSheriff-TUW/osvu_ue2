@@ -1,0 +1,14 @@
+BasedOnStyle: Google
+IndentWidth: 4
+PointerAlignment: Left # move Pointer * to the type and not the name
+ColumnLimit: 999
+
+# Line Breaks after 
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: true
+  AfterFunction: true
+  AfterControlStatement: true
+  AfterStruct: true
+  AfterEnum: true
+
