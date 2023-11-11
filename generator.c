@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 
+#include "common.h"
 #include "debug.h"
 #include "errors.h"
 
