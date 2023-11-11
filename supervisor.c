@@ -25,11 +25,23 @@ typedef struct
     uint16_t delayS; /*!< delay [s] before the starting to read the buffer */
 } options_t;
 
-static void usage()
+static void usage(char* msg)
 {
     // TODO: add usage prints
+    emit_error(msg, 0U);
 }
 
+/*!
+ * @brief   Handle Options
+ *
+ * @details This internal method is used to read the option given by the user.
+ *
+ * @warning For the limit and the delay a maximum of 65535 can be used, which would be around 1000h of delay....
+ *
+ * @param   argc    Argument Counter
+ * @param   argv    Argument Variables
+ * @param   pOpts   Pointer to the option bundle
+ **/
 static void handle_opts(int argc, char** argv, options_t* pOpts)
 {
     int16_t ret = 0;
@@ -38,29 +50,45 @@ static void handle_opts(int argc, char** argv, options_t* pOpts)
     {
         switch (ret)
         {
+            // Print
             case 'p': {
                 if (false != pOpts->print)
                 {
                     /* option was given two times */
-                    usage();
+                    usage("Option was given more than once\n");
                 } else
                 {
                     pOpts->print = true;
                 }
                 break;
             }
+
+            // Limit
             case 'n': {
-                pOpts->limit = (uint16_t)strtol(optarg, NULL, 0);  // TODO: check if that works with str->int
+                // check if option was given more than once
+                if (0 != pOpts->limit)
+                {
+                    usage("Option was given more than once\n");
+                }
+                pOpts->limit = (uint16_t)strtol(optarg, NULL, 0);
                 break;
             }
 
+            // Delay
             case 'w': {
+                // check if option was given more than once
+                if (0 != pOpts->delayS)
+                {
+                    usage("Option was given more than once\n");
+                }
+
                 pOpts->delayS = (uint16_t)strtol(optarg, NULL, 0);
                 break;
             }
 
+            // Unknown option
             default: {
-                usage();
+                usage("Unknown option\n");
                 break;
             }
         }
