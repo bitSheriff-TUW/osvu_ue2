@@ -39,9 +39,6 @@ generator: $(GEN_OBJS)
 supervisor: $(SUP_OBJS)
 	$(CC) $(LFLAGS) $(LIBS) $^ -o $@
 
-# all: $(OBJECTS)
-# 	echo "Linking..."
-# 	$(CC) $(LFLAGS) $(OBJECTS) $(LIBS) -o $(TARGET)
 all: generator supervisor
 
 
