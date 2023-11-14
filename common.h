@@ -7,10 +7,32 @@
  * @brief Stuff that every module needs
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "errors.h"
+
+/** @brief Name of the shared memory file */
+#define SHAREDMEM_FILE "sharedMem"
+
+/*!
+ * @struct shared_mem_flags_t
+ * @brief   Bundle for all runtime and configuration flags
+ *
+ * @details
+ *
+ **/
+typedef struct
+{
+    bool genActive; /*!< Flag that the generatros should be active */
+} shared_mem_flags_t;
+
+typedef struct
+{
+    shared_mem_flags_t flags;
+
+} shared_mem_t;
 
 /*!
  * @brief       Emit Error
