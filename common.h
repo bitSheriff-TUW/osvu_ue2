@@ -14,6 +14,9 @@
 #include "errors.h"
 
 /* **** SHARED MEMORY **** */
+#include <fcntl.h> /* For O_* constants */
+#include <sys/mman.h>
+#include <sys/stat.h> /* For mode constants */
 
 /** @brief Name of the shared memory file */
 #define SHAREDMEM_FILE "sharedMem"
