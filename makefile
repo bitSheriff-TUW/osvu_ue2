@@ -54,6 +54,8 @@ clean:
 	-rm -f *.o
 	-rm -f vgcore.*
 	-rm -f $(TARGET)
+	-rm -f supervisor
+	-rm -f generator #TODO: make more generic
 	-rm -rf doc/_output
 	-rm -f $(TEST_TARGET)
 	-rm -f $(TARGET)_mandl.tar.gz
