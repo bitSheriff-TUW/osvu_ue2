@@ -34,10 +34,10 @@ HEADERS = $(wildcard *.h)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 generator: $(GEN_OBJS)
-	$(CC) $(LFLAGS) $(LIBS) $^ -o $@
+	$(CC) $(LFLAGS) $^ -o $@ $(LIBS) 
 
 supervisor: $(SUP_OBJS)
-	$(CC) $(LFLAGS) $(LIBS) $^ -o $@
+	$(CC) $(LFLAGS) $^ -o $@ $(LIBS) 
 
 all: generator supervisor
 
