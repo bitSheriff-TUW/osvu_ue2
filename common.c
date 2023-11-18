@@ -17,7 +17,7 @@ void emit_error(char* msg, error_t retCode)
     // only print the error code if some was attached
     if (ERROR_OK != retCode)
     {
-        fprintf(stderr, "%s code: %d\n", msg, retCode);
+        fprintf(stderr, "%s\nCode: %d\n", msg, retCode);
     } else
     {
         fprintf(stderr, "%s\n", msg);
