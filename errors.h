@@ -8,3 +8,5 @@ typedef uint16_t error_t;
 #define ERROR_FORK_FAILED 0x01U
 #define ERROR_PIPE_FAILED 0x02U
 #define ERROR_PARAM 0x04U
+#define ERROR_CIRBUF_EMPTY 0x08U
+#define ERROR_CIRBUF_FULL 0x10U

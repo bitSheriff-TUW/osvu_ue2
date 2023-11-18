@@ -19,8 +19,20 @@
 #include <sys/mman.h>
 #include <sys/stat.h> /* For mode constants */
 
-/** @brief Name of the shared memory file */
-#define SHAREDMEM_FILE "sharedMem"
+#define SHAREDMEM_FILE "sharedMem"  /*!< Name of the shared memory file */
+#define CIRBUF_BUFSIZE 32           // TODO: better size
+#define DELIMITER_VERTEX UINT16_MAX /*!< Vertex for the delimiter, delimiter edge is defined by a loop to this vertex */
+
+/*!
+ * @struct edge_t
+ * @brief  Structre to store edges
+ **/
+typedef struct
+{
+    uint16_t v1; /*!< vertex 1 */
+    uint16_t v2; /*!< vertex 2 */
+
+} edge_t;
 
 /*!
  * @struct shared_mem_flags_t
@@ -36,6 +48,9 @@ typedef struct
 
 typedef struct
 {
+    ssize_t head;               /*!< Index to the head (write end) */
+    ssize_t tail;               /*!< Index to the tail (read end) */
+    edge_t buf[CIRBUF_BUFSIZE]; /*!< actual memory of the circular buffer */
 } shared_mem_circbuf_t;
 
 typedef struct
@@ -45,17 +60,6 @@ typedef struct
     shared_mem_circbuf_t circbuf; /*!< Bundle for the circular buffer */
 
 } shared_mem_t;
-
-/*!
- * @struct edge_t
- * @brief  Structre to store edges
- **/
-typedef struct
-{
-    uint16_t v1; /*!< vertex 1 */
-    uint16_t v2; /*!< vertex 2 */
-
-} edge_t;
 
 /* **** FUNCTIONS **** */
 void emit_error(char* msg, error_t retCode);

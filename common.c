@@ -1,5 +1,7 @@
 #include "common.h"
 
+#include "errors.h"
+
 /*!
  * @brief       Emit Error
  *
@@ -21,4 +23,32 @@ void emit_error(char* msg, error_t retCode)
         fprintf(stderr, "%s\n", msg);
     }
     exit(EXIT_FAILURE);
+}
+
+error_t circular_buffer_read(shared_mem_circbuf_t* pCirBuf, edge_t* pResult)
+{
+    error_t retCode = ERROR_OK;
+
+    // check if the buffer is empty
+    if (pCirBuf->head == pCirBuf->tail)
+    {
+        return ERROR_CIRBUF_EMPTY;
+    }
+
+    // TODO: actual alogorithm
+    return retCode;
+}
+
+error_t circular_buffer_write(shared_mem_circbuf_t* pCirBuf, edge_t ed)
+{
+    error_t retCode = ERROR_OK;
+
+    // check if the buffer is full
+    if (pCirBuf->head == pCirBuf->tail)
+    {
+        return ERROR_CIRBUF_FULL;
+    }
+
+    // TODO: actual alogorithm
+    return retCode;
 }
