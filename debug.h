@@ -7,9 +7,9 @@
 #ifdef DEBUG
 #include <stdio.h>
 
-#define debug(fmt, ...) (void)fprintf(stderr, "[%s %s:%d] " fmt "\n", __FILE__, __func__, __LINE__, ##__VA_ARGS__)
+#define debug(fmt, ...) (void)fprintf(stderr, "[%s:%d@%s] " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 #else
 
-#define debug(msg) /* NOP */
+#define debug(fmt, ...) /* NOP */
 
 #endif

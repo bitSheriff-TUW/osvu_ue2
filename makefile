@@ -15,6 +15,8 @@ CFLAGS += -D_DEFAULT_SOURCE -D_BSD_SOURCE
 CFLAGS += -D_SVID_SOURCE -D_POSIX_C_SOURCE=200809L
 CFLAGS += -c -g
 
+DFLAGS = -DDEBUG	# Debug flags
+
 LFLAGS = -g -pthread 		# linking flags
 TARGET = fb_arc_set
 
@@ -42,10 +44,8 @@ supervisor: $(SUP_OBJS)
 all: generator supervisor
 
 
-debug: CFLAGS += -DDEBUG -g
-debug:
-	@echo "Debugging..."
-	make all
+debug: CFLAGS += $(DFLAGS)
+debug: clean all
 
 .SILENT:
 clean:
