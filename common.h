@@ -15,6 +15,7 @@
 
 /* **** SHARED MEMORY **** */
 #include <fcntl.h> /* For O_* constants */
+#include <stdint.h>
 #include <sys/mman.h>
 #include <sys/stat.h> /* For mode constants */
 
@@ -44,6 +45,17 @@ typedef struct
     shared_mem_circbuf_t circbuf; /*!< Bundle for the circular buffer */
 
 } shared_mem_t;
+
+/*!
+ * @struct edge_t
+ * @brief  Structre to store edges
+ **/
+typedef struct
+{
+    uint16_t v1; /*!< vertex 1 */
+    uint16_t v2; /*!< vertex 2 */
+
+} edge_t;
 
 /* **** FUNCTIONS **** */
 void emit_error(char* msg, error_t retCode);
