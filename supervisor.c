@@ -28,7 +28,7 @@ typedef struct
 static void usage(char* msg)
 {
     // TODO: add usage prints
-    emit_error(msg, 0U);
+    emit_error(msg, ERROR_PARAM);
 }
 
 /*!
@@ -56,10 +56,8 @@ static void handle_opts(int argc, char** argv, options_t* pOpts)
                 {
                     /* option was given two times */
                     usage("Option was given more than once\n");
-                } else
-                {
-                    pOpts->print = true;
                 }
+                pOpts->print = true;
                 break;
             }
 
