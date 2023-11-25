@@ -10,3 +10,5 @@ typedef uint16_t error_t;
 #define ERROR_PARAM 0x04U
 #define ERROR_CIRBUF_EMPTY 0x08U
 #define ERROR_CIRBUF_FULL 0x10U
+#define ERROR_SEMAPHORE 0x20U
+#define ERROR_NULLPTR 0x40U

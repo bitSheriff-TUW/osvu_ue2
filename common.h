@@ -62,5 +62,19 @@ typedef struct
 
 } shared_mem_t;
 
+/*!
+ * @struct sems_t
+ * @brief  Structure of needed semaphores
+ * 
+ * @details Bundle of semaphores
+ * 
+**/
+typedef struct
+{
+    sem_t* mutex_write; /*!< Mutex for the generator (writing to circular buffer) */
+} sems_t;
+
 /* **** FUNCTIONS **** */
 void emit_error(char* msg, error_t retCode);
+error_t circular_buffer_read(shared_mem_circbuf_t* pCirBuf, sems_t* pSems, edge_t* pResult);
+error_t circular_buffer_write(shared_mem_circbuf_t* pCirBuf, sems_t* pSems, edge_t* pEd);

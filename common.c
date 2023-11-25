@@ -1,5 +1,8 @@
 #include "common.h"
 
+#include <stdio.h>
+#include <string.h>
+
 #include "errors.h"
 
 /*!
@@ -25,9 +28,17 @@ void emit_error(char* msg, error_t retCode)
     exit(EXIT_FAILURE);
 }
 
-error_t circular_buffer_read(shared_mem_circbuf_t* pCirBuf, edge_t* pResult)
+static void circular_buffer_safeIncrease(ssize_t* pIndex) { *pIndex = (*pIndex + 1U) % CIRBUF_BUFSIZE; }
+
+error_t circular_buffer_read(shared_mem_circbuf_t* pCirBuf, sems_t* pSems, edge_t* pResult)
 {
     error_t retCode = ERROR_OK;
+
+    // check if all pointer are valid
+    if ((NULL == pCirBuf) || (NULL == pSems) || (NULL == pResult))
+    {
+        return ERROR_NULLPTR;
+    }
 
     // check if the buffer is empty
     if (pCirBuf->head == pCirBuf->tail)
@@ -35,13 +46,28 @@ error_t circular_buffer_read(shared_mem_circbuf_t* pCirBuf, edge_t* pResult)
         return ERROR_CIRBUF_EMPTY;
     }
 
-    // TODO: actual alogorithm
+    // TODO: semaphores wait?
+
+    // copy the element from the buffer to the result address
+    memcpy(pResult, &pCirBuf->buf[pCirBuf->tail], sizeof(edge_t));
+    circular_buffer_safeIncrease(&pCirBuf->tail);
+
+    // TODO: semaphores post?
+
     return retCode;
 }
 
-error_t circular_buffer_write(shared_mem_circbuf_t* pCirBuf, edge_t ed)
+error_t circular_buffer_write(shared_mem_circbuf_t* pCirBuf, sems_t* pSems, edge_t* pEd)
 {
     error_t retCode = ERROR_OK;
+
+    // check if all pointer are valid
+    if ((NULL == pCirBuf) || (NULL == pSems) || (NULL == pEd))
+    {
+        return ERROR_NULLPTR;
+    }
+
+    // TODO: semaphores wait
 
     // check if the buffer is full
     if (pCirBuf->head == pCirBuf->tail)
@@ -49,6 +75,11 @@ error_t circular_buffer_write(shared_mem_circbuf_t* pCirBuf, edge_t ed)
         return ERROR_CIRBUF_FULL;
     }
 
-    // TODO: actual alogorithm
+    // set the element
+    memcpy(&pCirBuf->buf[pCirBuf->head], pEd, sizeof(edge_t));
+    circular_buffer_safeIncrease(&pCirBuf->head);
+
+    // TODO: semaphores post
+
     return retCode;
 }
