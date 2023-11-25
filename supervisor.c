@@ -6,6 +6,7 @@
 
 #include <getopt.h>
 #include <semaphore.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -25,6 +26,12 @@ typedef struct
     uint16_t limit;  /*!< number of generated solutions */
     uint16_t delayS; /*!< delay [s] before the starting to read the buffer */
 } options_t;
+
+/**
+ * @brief Signal Interupt
+ * @details This global boolean flag is used to check if a signal interrupt happend
+ */
+static bool gSigInt = false;
 
 static void usage(char* msg)
 {
@@ -147,11 +154,20 @@ error_t cleanup_semaphores(sems_t* pSems)
     return retCode;
 }
 
+void handle_sigint(int32_t sig)
+{
+    // set the global variable to true
+    gSigInt = true;
+}
+
 int main(int argc, char* argv[])
 {
     error_t retCode = ERROR_OK; /*!< return code */
     options_t opts = {0U};      /*!< bundle of options */
     sems_t semaphores = {0};
+
+    // register the signal handler
+    signal(SIGINT, handle_sigint);
 
     /* get the options */
     handle_opts(argc, argv, &opts);
@@ -161,6 +177,11 @@ int main(int argc, char* argv[])
     if (ERROR_OK != retCode)
     {
         emit_error("Something was wrong with creating the semaphores\n", retCode);
+    }
+
+    // main operating loop
+    while (false == gSigInt)
+    {
     }
 
     retCode |= cleanup_semaphores(&semaphores);
