@@ -81,6 +81,16 @@ error_t cleanup_semaphores(sems_t* pSems)
     return retCode;
 }
 
+error_t write_solution(sems_t* pSems)
+{
+    error_t retCode = ERROR_OK;
+    if (sem_wait(pSems->mutex_write) < 0) return ERROR_SEMAPHORE;
+    // TODO: do something
+
+    if (sem_post(pSems->mutex_write) < 0) return ERROR_SEMAPHORE;
+    return retCode;
+}
+
 int main(int argc, char* argv[])
 {
     debug("This is the generator\n", NULL);
