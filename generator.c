@@ -5,6 +5,7 @@
  */
 
 #include <inttypes.h>
+#include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -37,17 +38,70 @@ static void readEdges(edge_t* pEdges[], char** argv, ssize_t argc)
     }
 }
 
+error_t init_semaphores(sems_t* pSems)
+{
+    error_t retCode = ERROR_OK;
+
+    // open the named semaphores
+    pSems->mutex_write = sem_open(SEM_NAME_MUTEX, 0);
+    pSems->buffer_empty = sem_open(SEM_NAME_EMPTY, 0);
+    pSems->buffer_full = sem_open(SEM_NAME_FULL, 0);
+
+    // check if the opening was succesfull
+    if ((SEM_FAILED == pSems->buffer_empty) || (SEM_FAILED == pSems->mutex_write) || (SEM_FAILED == pSems->buffer_full))
+    {
+        retCode = ERROR_SEMAPHORE;
+    }
+
+    return retCode;
+}
+
+error_t cleanup_semaphores(sems_t* pSems)
+{
+    error_t retCode = ERROR_OK;
+
+    if (sem_close(pSems->buffer_full) == -1)
+    {
+        debug("Semaphore Close error: Buffer Full\n", NULL);
+        retCode |= ERROR_SEMAPHORE;
+    }
+
+    if (sem_close(pSems->buffer_empty) == -1)
+    {
+        debug("Semaphore Close error: Buffer Empty\n", NULL);
+        retCode |= ERROR_SEMAPHORE;
+    }
+
+    if (sem_close(pSems->mutex_write) == -1)
+    {
+        debug("Semaphore Close error: Mutex\n", NULL);
+        retCode |= ERROR_SEMAPHORE;
+    }
+
+    return retCode;
+}
+
 int main(int argc, char* argv[])
 {
     debug("This is the generator\n", NULL);
-
+    error_t retCode = ERROR_OK;                      /*!< return code for error handling */
     ssize_t edgeCnt = argc - 1U;                     /*!< number of given edges */
     edge_t* edges = calloc(sizeof(edge_t), edgeCnt); /*!< memory to store all edges */
+    sems_t semaphores = {0U};                        /*!< struct of all needed semaphores */
 
     debug("Number of Edges: %ld\n", edgeCnt);
 
     // read the edges from the parameters
     readEdges(&edges, argv, argc);
+
+    retCode |= init_semaphores(&semaphores);
+
+    if (ERROR_OK != retCode)
+    {
+        emit_error("Something was wrong with the semaphores\n", retCode);
+    }
+
+    cleanup_semaphores(&semaphores);
 
     return EXIT_SUCCESS;
 }

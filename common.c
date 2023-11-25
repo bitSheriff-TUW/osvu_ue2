@@ -1,5 +1,6 @@
 #include "common.h"
 
+#include <semaphore.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -46,13 +47,15 @@ error_t circular_buffer_read(shared_mem_circbuf_t* pCirBuf, sems_t* pSems, edge_
         return ERROR_CIRBUF_EMPTY;
     }
 
-    // TODO: semaphores wait?
+    // cannot read if buffer is empty, so check if the buffer has elements
+    sem_wait(pSems->buffer_empty);
 
     // copy the element from the buffer to the result address
     memcpy(pResult, &pCirBuf->buf[pCirBuf->tail], sizeof(edge_t));
     circular_buffer_safeIncrease(&pCirBuf->tail);
 
-    // TODO: semaphores post?
+    // something was read, so the fullness decreases
+    sem_post(pSems->buffer_full);
 
     return retCode;
 }
@@ -67,7 +70,10 @@ error_t circular_buffer_write(shared_mem_circbuf_t* pCirBuf, sems_t* pSems, edge
         return ERROR_NULLPTR;
     }
 
-    // TODO: semaphores wait
+    // mutex: only one generator is allowed to write at the same time
+    // if the buffer is full, you have to wait until it gets read
+    sem_wait(pSems->mutex_write);
+    sem_wait(pSems->buffer_full);
 
     // check if the buffer is full
     if (pCirBuf->head == pCirBuf->tail)
@@ -79,7 +85,10 @@ error_t circular_buffer_write(shared_mem_circbuf_t* pCirBuf, sems_t* pSems, edge
     memcpy(&pCirBuf->buf[pCirBuf->head], pEd, sizeof(edge_t));
     circular_buffer_safeIncrease(&pCirBuf->head);
 
-    // TODO: semaphores post
+    // mutex: now another generator can write
+    // something was written into the buffer, so the supervisor can read something now
+    sem_post(pSems->mutex_write);
+    sem_post(pSems->buffer_empty);
 
     return retCode;
 }

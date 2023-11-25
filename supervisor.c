@@ -5,6 +5,7 @@
  */
 
 #include <getopt.h>
+#include <semaphore.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -93,13 +94,76 @@ static void handle_opts(int argc, char** argv, options_t* pOpts)
     }
 }
 
+error_t init_semaphores(sems_t* pSems)
+{
+    error_t retCode = ERROR_OK;
+
+    // unlink if there are semaphores which were not closed properly (due to error)
+    sem_unlink(SEM_NAME_MUTEX);
+    sem_unlink(SEM_NAME_EMPTY);
+    sem_unlink(SEM_NAME_FULL);
+
+    // create the named semaphores
+    pSems->mutex_write = sem_open(SEM_NAME_MUTEX, O_CREAT, 0666, 0);
+    pSems->buffer_empty = sem_open(SEM_NAME_EMPTY, O_CREAT, 0666, 0);
+    pSems->buffer_full = sem_open(SEM_NAME_FULL, O_CREAT, 0666, 0);
+
+    // check if the opening was succesfull
+    if ((SEM_FAILED == pSems->buffer_empty) || (SEM_FAILED == pSems->mutex_write) || (SEM_FAILED == pSems->buffer_full))
+    {
+        retCode = ERROR_SEMAPHORE;
+    }
+
+    return retCode;
+}
+
+error_t cleanup_semaphores(sems_t* pSems)
+{
+    error_t retCode = ERROR_OK;
+
+    if (sem_close(pSems->buffer_full) == -1)
+    {
+        debug("Semaphore Close error: Buffer Full\n", NULL);
+        retCode |= ERROR_SEMAPHORE;
+    }
+
+    if (sem_close(pSems->buffer_empty) == -1)
+    {
+        debug("Semaphore Close error: Buffer Empty\n", NULL);
+        retCode |= ERROR_SEMAPHORE;
+    }
+
+    if (sem_close(pSems->mutex_write) == -1)
+    {
+        debug("Semaphore Close error: Mutex\n", NULL);
+        retCode |= ERROR_SEMAPHORE;
+    }
+
+    // delete the semamorph files, if something fails here, there is now proper way to react, so ignore the retVal
+    (void)sem_unlink(SEM_NAME_MUTEX);
+    (void)sem_unlink(SEM_NAME_EMPTY);
+    (void)sem_unlink(SEM_NAME_FULL);
+
+    return retCode;
+}
+
 int main(int argc, char* argv[])
 {
     error_t retCode = ERROR_OK; /*!< return code */
     options_t opts = {0U};      /*!< bundle of options */
+    sems_t semaphores = {0};
 
     /* get the options */
     handle_opts(argc, argv, &opts);
+
+    retCode |= init_semaphores(&semaphores);
+
+    if (ERROR_OK != retCode)
+    {
+        emit_error("Something was wrong with creating the semaphores\n", retCode);
+    }
+
+    retCode |= cleanup_semaphores(&semaphores);
 
     return retCode;
 }

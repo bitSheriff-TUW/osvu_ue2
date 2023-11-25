@@ -24,6 +24,11 @@
 #define CIRBUF_BUFSIZE 32           // TODO: better size
 #define DELIMITER_VERTEX UINT16_MAX /*!< Vertex for the delimiter, delimiter edge is defined by a loop to this vertex */
 
+
+#define SEM_NAME_MUTEX "/sem_mutex"
+#define SEM_NAME_EMPTY "/sem_empty"
+#define SEM_NAME_FULL  "/sem_full" 
+
 /*!
  * @struct edge_t
  * @brief  Structre to store edges (unidirected)
@@ -62,6 +67,14 @@ typedef struct
 
 } shared_mem_t;
 
+// FIXME: remove if not needed
+// typedef struct {
+//
+//     int16_t fd; /*!< file desrciptor */
+//     void* pRawAddr; /*!< raw address of the mapped shared mem */
+//     shared_mem_t* pSharedMem; /*!< casted pointer to the shared memory */
+// }IF_shared_mem_t;
+
 /*!
  * @struct sems_t
  * @brief  Structure of needed semaphores
@@ -72,6 +85,8 @@ typedef struct
 typedef struct
 {
     sem_t* mutex_write; /*!< Mutex for the generator (writing to circular buffer) */
+    sem_t* buffer_empty; /*!< semaphore to handle emptiness */
+    sem_t* buffer_full; /*!< sempaphore to handle fullness */
 } sems_t;
 
 /* **** FUNCTIONS **** */
