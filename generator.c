@@ -14,6 +14,12 @@
 
 static void readEdges(edge_t* pEdges[], char** argv, ssize_t argc)
 {
+    // check if edges were given, more than one is needed
+    if (2 > argc)
+    {
+        emit_error("Not enough parameter given\n", ERROR_PARAM);
+    }
+
     // step through all the given parameters and parse the endges
     for (ssize_t i = 1U; i < argc; i++)
     {
