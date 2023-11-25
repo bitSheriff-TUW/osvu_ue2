@@ -15,11 +15,12 @@
 
 /* **** SHARED MEMORY **** */
 #include <fcntl.h> /* For O_* constants */
+#include <semaphore.h>
 #include <stdint.h>
 #include <sys/mman.h>
 #include <sys/stat.h> /* For mode constants */
 
-#define SHAREDMEM_FILE "sharedMem"  /*!< Name of the shared memory file */
+#define SHAREDMEM_FILE "/sharedMem" /*!< Name of the shared memory file */
 #define CIRBUF_BUFSIZE 32           // TODO: better size
 #define DELIMITER_VERTEX UINT16_MAX /*!< Vertex for the delimiter, delimiter edge is defined by a loop to this vertex */
 
@@ -43,7 +44,7 @@ typedef struct
  **/
 typedef struct
 {
-    bool genActive; /*!< Flag that the generatros should be active */
+    bool genActive; /*!< Flag that the generators should be active */
 } shared_mem_flags_t;
 
 typedef struct

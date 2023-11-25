@@ -18,13 +18,13 @@ static void readEdges(edge_t* pEdges[], char** argv, ssize_t argc)
     for (ssize_t i = 1U; i < argc; i++)
     {
         // the verticies are sepertaed with a dash, and the edges with a space
-        if (sscanf(argv[i], "%hu-%hu", &((*pEdges)[i - 1].v1), &((*pEdges)[i - 1].v2)) < 0)
+        if (sscanf(argv[i], "%hu-%hu", &((*pEdges)[i - 1].start), &((*pEdges)[i - 1].end)) < 0)
         {
             emit_error("Something went wrong with reading edges\n", ERROR_PARAM);
         }
 
         // check for loop
-        if ((*pEdges)[i - 1].v1 == (*pEdges)[i - 1].v2)
+        if ((*pEdges)[i - 1].start == (*pEdges)[i - 1].end)
         {
             emit_error("Loops are not allowed\n", ERROR_PARAM);
         }
