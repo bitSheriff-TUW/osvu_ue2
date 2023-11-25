@@ -25,12 +25,12 @@
 
 /*!
  * @struct edge_t
- * @brief  Structre to store edges
+ * @brief  Structre to store edges (unidirected)
  **/
 typedef struct
 {
-    uint16_t v1; /*!< vertex 1 */
-    uint16_t v2; /*!< vertex 2 */
+    uint16_t start; /*!< start vertex */
+    uint16_t end;   /*!< end vertex */
 
 } edge_t;
 
