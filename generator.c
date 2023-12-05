@@ -176,10 +176,26 @@ int16_t* get_vertices(edge_t* pEdges, ssize_t edgeCnt)
     return vert;
 }
 
+uint16_t get_random_seed()
+{
+    uint16_t seed = 0U;
+    FILE* fp = fopen("/dev/urandom", "r");
+
+    if (NULL == fp)
+    {
+        emit_error("Could not open /dev/urandom\n", ERROR_PARAM);
+    }
+
+    fread(&seed, sizeof(uint16_t), 1U, fp);
+    fclose(fp);
+
+    return seed;
+}
+
 void shuffle(int16_t** pVert, ssize_t edgeCnt)
 {
     // set the seed for the random number generator
-    srand(getpid());
+    srand(get_random_seed());
 
     // mix the vertices in the array
     for (ssize_t i = 0U; i < edgeCnt; i++)
@@ -285,9 +301,7 @@ int main(int argc, char* argv[])
     }
 
 
-    int debugInt = 0; 
-
-    while ( (pSharedMem->flags.genActive) && debugInt < 10)
+    while (pSharedMem->flags.genActive)
     {
         int semValWr, semValRd, semValMut;
         sem_getvalue(semaphores.writing, &semValWr);
@@ -302,7 +316,6 @@ int main(int argc, char* argv[])
         retCode |= write_solution(pSharedMem, &semaphores, solution, edgeCnt);
 
         sem_post(semaphores.reading);
-        debugInt++;
     }
 
 

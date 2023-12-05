@@ -326,7 +326,7 @@ int main(int argc, char* argv[])
 
         get_solution(pSharedMem, &semaphores, &currSol, &currSolSize);
 
-        debug("Best: %d, Curr: %d\n", bestSolSize, currSolSize);
+        debug("Best: %ld, Curr: %d\n", bestSolSize, currSolSize);
 
         if((currSolSize < bestSolSize) && (currSolSize != 0U))
         {
