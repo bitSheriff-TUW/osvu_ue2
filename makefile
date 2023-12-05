@@ -35,13 +35,13 @@ HEADERS = $(wildcard *.h)
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+all: generator supervisor
+
 generator: $(GEN_OBJS)
 	$(CC) $(LFLAGS) $^ -o $@ $(LIBS) 
 
 supervisor: $(SUP_OBJS)
 	$(CC) $(LFLAGS) $^ -o $@ $(LIBS) 
-
-all: generator supervisor
 
 
 debug: CFLAGS += $(DFLAGS)

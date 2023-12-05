@@ -18,7 +18,7 @@
 
 /**
  * @brief Bundle of options
- * @details This bundle is used to bundle all option of this moudle for easier access.
+ * @details This bundle is used to bundle all option of this module for easier access.
  */
 typedef struct
 {
@@ -28,7 +28,7 @@ typedef struct
 } options_t;
 
 /**
- * @brief Signal Interupt
+ * @brief Signal Interrupt
  * @details This global boolean flag is used to check if a signal interrupt happend
  */
 static bool gSigInt = false;
@@ -107,16 +107,16 @@ error_t init_semaphores(sems_t* pSems)
 
     // unlink if there are semaphores which were not closed properly (due to error)
     sem_unlink(SEM_NAME_MUTEX);
-    sem_unlink(SEM_NAME_EMPTY);
-    sem_unlink(SEM_NAME_FULL);
+    sem_unlink(SEM_NAME_READ);
+    sem_unlink(SEM_NAME_WRITE);
 
     // create the named semaphores
     pSems->mutex_write = sem_open(SEM_NAME_MUTEX, O_CREAT, 0666, 0);
-    pSems->buffer_empty = sem_open(SEM_NAME_EMPTY, O_CREAT, 0666, 0);
-    pSems->buffer_full = sem_open(SEM_NAME_FULL, O_CREAT, 0666, 0);
+    pSems->reading = sem_open(SEM_NAME_READ, O_CREAT, 0666, 0);
+    pSems->writing = sem_open(SEM_NAME_WRITE, O_CREAT, 0666, CIRBUF_BUFSIZE);
 
     // check if the opening was succesfull
-    if ((SEM_FAILED == pSems->buffer_empty) || (SEM_FAILED == pSems->mutex_write) || (SEM_FAILED == pSems->buffer_full))
+    if ((SEM_FAILED == pSems->reading) || (SEM_FAILED == pSems->mutex_write) || (SEM_FAILED == pSems->writing))
     {
         retCode = ERROR_SEMAPHORE;
     }
@@ -128,13 +128,13 @@ error_t cleanup_semaphores(sems_t* pSems)
 {
     error_t retCode = ERROR_OK;
 
-    if (sem_close(pSems->buffer_full) == -1)
+    if (sem_close(pSems->writing) == -1)
     {
         debug("Semaphore Close error: Buffer Full\n", NULL);
         retCode |= ERROR_SEMAPHORE;
     }
 
-    if (sem_close(pSems->buffer_empty) == -1)
+    if (sem_close(pSems->reading) == -1)
     {
         debug("Semaphore Close error: Buffer Empty\n", NULL);
         retCode |= ERROR_SEMAPHORE;
@@ -146,10 +146,10 @@ error_t cleanup_semaphores(sems_t* pSems)
         retCode |= ERROR_SEMAPHORE;
     }
 
-    // delete the semamorph files, if something fails here, there is now proper way to react, so ignore the retVal
+    // delete the semaphore files, if something fails here, there is now proper way to react, so ignore the retVal
     (void)sem_unlink(SEM_NAME_MUTEX);
-    (void)sem_unlink(SEM_NAME_EMPTY);
-    (void)sem_unlink(SEM_NAME_FULL);
+    (void)sem_unlink(SEM_NAME_READ);
+    (void)sem_unlink(SEM_NAME_WRITE);
 
     return retCode;
 }
@@ -158,6 +158,93 @@ void handle_sigint(int32_t sig)
 {
     // set the global variable to true
     gSigInt = true;
+    debug("SIGINT received\n", NULL);
+}
+
+error_t init_shmem(shared_mem_t* pSharedMem, int16_t* pFd)
+{
+    error_t retCode = ERROR_OK;
+
+    // unlink the shared memory if a file already exists
+    shm_unlink(SHAREDMEM_FILE);
+
+    // open the shared memory
+    *pFd = shm_open(SHAREDMEM_FILE, O_RDWR | O_CREAT | O_EXCL, 0600);
+
+    // check if the opening was successful
+    if (*pFd < 0)
+    {
+        retCode = ERROR_SHMEM;
+        debug("Opening failed %d\n", errno);
+        debug("Already exists, try to unlink\n", NULL);
+        shm_unlink(SHAREDMEM_FILE);
+        *pFd = shm_open(SHAREDMEM_FILE, O_RDWR | O_CREAT | O_EXCL, 0600);
+
+        if (*pFd < 0)
+        {
+            debug("Opening failed again, exit %d\n", errno);
+          return retCode;
+        }
+    }
+
+    if(ftruncate(*pFd, sizeof(shared_mem_t)) < 0)
+	{
+        debug("ftruncate failed\n", NULL);
+        retCode = ERROR_SHMEM;
+        return retCode;
+	}
+
+    // map the shared memory
+    pSharedMem = (shared_mem_t*) mmap(NULL, sizeof(shared_mem_t), PROT_READ | PROT_WRITE, MAP_SHARED, *pFd, 0);
+
+    // check if the mapping was successful
+    if (MAP_FAILED == pSharedMem)
+    {
+        retCode = ERROR_SHMEM;
+        debug("Mapping failed\n", NULL);
+        return retCode;
+    }
+
+    // if everything was successful, reset the memory
+    memset(pSharedMem, 0, sizeof(shared_mem_t));
+    close(*pFd);
+
+    return retCode;
+}
+
+size_t size_of_graph(edge_t* pEds)
+{
+    size_t size = 0U;
+    while ( (is_edge_delimiter(pEds[size])) && (size < BEST_SOL_MAX_EDGES))
+    {
+        size++;
+    }
+
+    return size;
+}
+
+error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems,  edge_t** pEdges)
+{
+    error_t retCode = ERROR_OK;
+    edge_t currEdge = {0U};
+    size_t iter = 0;
+
+    do
+    {
+        retCode |= circular_buffer_read(&pSharedMem->circbuf, pSems, &currEdge);
+
+        if(retCode != ERROR_OK)
+        {
+            return retCode;
+        }
+        else
+        {
+            memcpy(pEdges[iter], &currEdge, sizeof(edge_t));
+            iter++;
+        }
+    } while (!is_edge_delimiter(currEdge));
+    
+    return retCode;
 }
 
 int main(int argc, char* argv[])
@@ -165,25 +252,73 @@ int main(int argc, char* argv[])
     error_t retCode = ERROR_OK; /*!< return code */
     options_t opts = {0U};      /*!< bundle of options */
     sems_t semaphores = {0};
+    shared_mem_t* pSharedMem = NULL;
+    edge_t* bestSol = {0U}; /* best found solution */
+    edge_t* currSol = {0U}; /* current solution */
+    size_t bestSolSize = 0U;                   /* size of the best solution */
+    size_t currSolSize = 0U;                   /* size of the current solution */
+    int16_t fd = -1;                           /* file descriptor of the shared memory */
+
+    // allocate the memory for the solutions
+    bestSol = calloc(sizeof(edge_t), BEST_SOL_MAX_EDGES);
+    currSol = calloc(sizeof(edge_t), BEST_SOL_MAX_EDGES);
 
     // register the signal handler
-    signal(SIGINT, handle_sigint);
+    struct sigaction sa = { 
+    .sa_handler = handle_sigint 
+    };
+    sigaction(SIGINT, &sa, NULL);
 
     /* get the options */
     handle_opts(argc, argv, &opts);
 
     retCode |= init_semaphores(&semaphores);
+    debug("Semaphores initialized\n", NULL);
 
     if (ERROR_OK != retCode)
     {
         emit_error("Something was wrong with creating the semaphores\n", retCode);
     }
 
+    retCode |= init_shmem(pSharedMem, &fd);
+    debug("Shared Memory initialized: fd: %d, addr: %d\n", fd, pSharedMem);
+
     // main operating loop
+    debug("Starting main loop\n", NULL);
     while (false == gSigInt)
     {
-    }
 
+        ssize_t numSol = 0U;
+        sem_wait(semaphores.reading);
+
+        get_solution(pSharedMem, &semaphores, &currSol);
+        debug("Solution %ld: ", numSol);
+
+        currSolSize = size_of_graph(currSol);
+
+        if(currSolSize < bestSolSize)
+        {
+            memcpy(bestSol, currSol, sizeof(edge_t) * currSolSize);
+            bestSolSize = currSolSize;
+            debug("New best solution found with %d edges removed\n", bestSolSize);
+        }
+
+        // if (bestSolSize == 0U)
+        // {
+        //     fprintf(stdout, "The graph is acyclic!\n");
+        //     break;
+        // }
+        
+        sem_post(semaphores.writing);
+        numSol++;
+    }
+    debug("SIGINT received, exiting\n", NULL);
+
+    free(bestSol);
+    free(currSol);
+
+    // unmap memory
+    munmap(pSharedMem, sizeof(shared_mem_t));
     retCode |= cleanup_semaphores(&semaphores);
 
     return retCode;

@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
 #include "errors.h"
 
 /* **** SHARED MEMORY **** */
@@ -19,18 +20,24 @@
 #include <stdint.h>
 #include <sys/mman.h>
 #include <sys/stat.h> /* For mode constants */
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
 
-#define SHAREDMEM_FILE "/12220853_sharedMem" /*!< Name of the shared memory file */
-#define CIRBUF_BUFSIZE 32                    // TODO: better size
-#define DELIMITER_VERTEX UINT16_MAX          /*!< Vertex for the delimiter, delimiter edge is defined by a loop to this vertex */
+#define SHAREDMEM_FILE "12220853_sharedMem" /*!< Name of the shared memory file */
+#define CIRBUF_BUFSIZE 64                    // TODO: better size
+#define DELIMITER_VERTEX 0          /*!< Vertex for the delimiter, delimiter edge is defined by a loop to this vertex */
 
-#define SEM_NAME_MUTEX "/12220853_sem_mutex"
-#define SEM_NAME_EMPTY "/12220853_sem_empty"
-#define SEM_NAME_FULL "/12220853_sem_full"
+#define SEM_NAME_MUTEX "12220853_sem_mutex"
+#define SEM_NAME_READ "12220853_sem_empty"
+#define SEM_NAME_WRITE "12220853_sem_full"
+
+# define BEST_SOL_MAX_EDGES 16U /*!< Maximum number of edges for the best solution */
 
 /*!
  * @struct edge_t
- * @brief  Structre to store edges (unidirected)
+ * @brief  Struct to store edges (unidirected)
  **/
 typedef struct
 {
@@ -66,13 +73,6 @@ typedef struct
 
 } shared_mem_t;
 
-// FIXME: remove if not needed
-// typedef struct {
-//
-//     int16_t fd; /*!< file desrciptor */
-//     void* pRawAddr; /*!< raw address of the mapped shared mem */
-//     shared_mem_t* pSharedMem; /*!< casted pointer to the shared memory */
-// }IF_shared_mem_t;
 
 /*!
  * @struct sems_t
@@ -84,8 +84,8 @@ typedef struct
 typedef struct
 {
     sem_t* mutex_write;  /*!< Mutex for the generator (writing to circular buffer) */
-    sem_t* buffer_empty; /*!< semaphore to handle emptiness */
-    sem_t* buffer_full;  /*!< sempaphore to handle fullness */
+    sem_t* writing; /*!< semaphore to handle emptiness */
+    sem_t* reading;  /*!< semaphore to handle fullness */
 } sems_t;
 
 /* **** FUNCTIONS **** */
