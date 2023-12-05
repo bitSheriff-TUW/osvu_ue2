@@ -90,3 +90,12 @@ error_t circular_buffer_write(shared_mem_circbuf_t* pCirBuf, sems_t* pSems, edge
 
     return retCode;
 }
+
+bool is_edge_delimiter(edge_t ed)
+{
+    if (ed.start == DELIMITER_VERTEX && ed.end == DELIMITER_VERTEX)
+    {
+        return true;
+    }
+    return false;
+}

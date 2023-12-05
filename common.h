@@ -92,3 +92,4 @@ typedef struct
 void emit_error(char* msg, error_t retCode);
 error_t circular_buffer_read(shared_mem_circbuf_t* pCirBuf, sems_t* pSems, edge_t* pResult);
 error_t circular_buffer_write(shared_mem_circbuf_t* pCirBuf, sems_t* pSems, edge_t* pEd);
+bool is_edge_delimiter(edge_t ed);
