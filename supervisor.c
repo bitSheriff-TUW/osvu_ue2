@@ -111,9 +111,9 @@ error_t init_semaphores(sems_t* pSems)
     sem_unlink(SEM_NAME_WRITE);
 
     // create the named semaphores
-    pSems->mutex_write = sem_open(SEM_NAME_MUTEX, O_CREAT, 0666, 1);
-    pSems->reading = sem_open(SEM_NAME_READ, O_CREAT, 0666, 0);
-    pSems->writing = sem_open(SEM_NAME_WRITE, O_CREAT, 0666, CIRBUF_BUFSIZE);
+    pSems->mutex_write = sem_open(SEM_NAME_MUTEX, O_CREAT | O_EXCL, 0666, 1);
+    pSems->reading = sem_open(SEM_NAME_READ, O_CREAT | O_EXCL, 0666, 0);
+    pSems->writing = sem_open(SEM_NAME_WRITE, O_CREAT | O_EXCL, 0666, CIRBUF_BUFSIZE);
 
     // check if the opening was succesfull
     if ((SEM_FAILED == pSems->reading) || (SEM_FAILED == pSems->mutex_write) || (SEM_FAILED == pSems->writing))
@@ -177,14 +177,21 @@ error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
     {
         retCode = ERROR_SHMEM;
         debug("Opening failed %d\n", errno);
+
         debug("Already exists, try to unlink\n", NULL);
         shm_unlink(SHAREDMEM_FILE);
+
         *pFd = shm_open(SHAREDMEM_FILE, O_RDWR | O_CREAT | O_EXCL, 0600);
 
         if (*pFd < 0)
         {
             debug("Opening failed again, exit %d\n", errno);
           return retCode;
+        }
+        else
+        {
+            // everything was successful (on the second try)
+            retCode = ERROR_OK;
         }
     }
 
@@ -291,10 +298,16 @@ int main(int argc, char* argv[])
     // set the flag that the generators should be active
     pSharedMem->flags.genActive = true;
 
+        ssize_t numSol = 0U;
     while (false == gSigInt)
     {
 
-        ssize_t numSol = 0U;
+        int semValWr, semValRd, semValMut;
+        sem_getvalue(semaphores.writing, &semValWr);
+        sem_getvalue(semaphores.reading, &semValRd);
+        sem_getvalue(semaphores.mutex_write, &semValMut);
+        debug("Sem Write: %d, Sem Read: %d, Mut: %d\n", semValWr, semValRd, semValMut);
+
         sem_wait(semaphores.reading);
 
         get_solution(pSharedMem, &semaphores, &currSol);

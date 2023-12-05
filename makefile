@@ -17,7 +17,7 @@ CFLAGS += -c -g
 
 DFLAGS = -DDEBUG	# Debug flags
 
-LFLAGS = -g -pthread 		# linking flags
+LFLAGS = -g -pthread -lrt 		# linking flags
 TARGET = fb_arc_set
 
 TEST_LIBS = -lcunit # Libraries needed for the test

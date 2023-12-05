@@ -44,7 +44,7 @@ error_t init_semaphores(sems_t* pSems)
     error_t retCode = ERROR_OK;
 
     // open the named semaphores
-    pSems->mutex_write = sem_open(SEM_NAME_MUTEX, 0);
+    pSems->mutex_write = sem_open(SEM_NAME_MUTEX, 1);
     pSems->reading = sem_open(SEM_NAME_READ, 0);
     pSems->writing = sem_open(SEM_NAME_WRITE, 0);
 
@@ -128,6 +128,7 @@ error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* pEdges, 
     {
 
         retCode |= circular_buffer_write(&pSharedMem->circbuf, pSems, &pEdges[i]);
+        debug("Writing edge %d with %d-%d\n", i, pEdges[i].start, pEdges[i].end);
     }
 
     // write the delimiter
@@ -171,14 +172,16 @@ int main(int argc, char* argv[])
 
     while (pSharedMem->flags.genActive)
     {
-
-        //debug("Sem Write: %d, Sem Read: %d\n", sem_getvalue(&semaphores.writing, NULL), sem_getvalue(&semaphores.reading, NULL));
-        sem_wait(semaphores.mutex_write);
+        int semValWr, semValRd, semValMut;
+        sem_getvalue(semaphores.writing, &semValWr);
+        sem_getvalue(semaphores.reading, &semValRd);
+        sem_getvalue(semaphores.mutex_write, &semValMut);
+        debug("Sem Write: %d, Sem Read: %d, Mut: %d\n", semValWr, semValRd, semValMut);
 
         // write the edges to the shared memory
         retCode |= write_solution(pSharedMem, &semaphores, edges, edgeCnt);
 
-        sem_post(semaphores.mutex_write);
+        sem_post(semaphores.reading);
     }
 
 
