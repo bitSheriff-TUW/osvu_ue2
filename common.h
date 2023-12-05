@@ -20,14 +20,13 @@
 #include <sys/mman.h>
 #include <sys/stat.h> /* For mode constants */
 
-#define SHAREDMEM_FILE "/sharedMem" /*!< Name of the shared memory file */
-#define CIRBUF_BUFSIZE 32           // TODO: better size
-#define DELIMITER_VERTEX UINT16_MAX /*!< Vertex for the delimiter, delimiter edge is defined by a loop to this vertex */
+#define SHAREDMEM_FILE "/12220853_sharedMem" /*!< Name of the shared memory file */
+#define CIRBUF_BUFSIZE 32                    // TODO: better size
+#define DELIMITER_VERTEX UINT16_MAX          /*!< Vertex for the delimiter, delimiter edge is defined by a loop to this vertex */
 
-
-#define SEM_NAME_MUTEX "/sem_mutex"
-#define SEM_NAME_EMPTY "/sem_empty"
-#define SEM_NAME_FULL  "/sem_full" 
+#define SEM_NAME_MUTEX "/12220853_sem_mutex"
+#define SEM_NAME_EMPTY "/12220853_sem_empty"
+#define SEM_NAME_FULL "/12220853_sem_full"
 
 /*!
  * @struct edge_t
@@ -78,15 +77,15 @@ typedef struct
 /*!
  * @struct sems_t
  * @brief  Structure of needed semaphores
- * 
+ *
  * @details Bundle of semaphores
- * 
-**/
+ *
+ **/
 typedef struct
 {
-    sem_t* mutex_write; /*!< Mutex for the generator (writing to circular buffer) */
+    sem_t* mutex_write;  /*!< Mutex for the generator (writing to circular buffer) */
     sem_t* buffer_empty; /*!< semaphore to handle emptiness */
-    sem_t* buffer_full; /*!< sempaphore to handle fullness */
+    sem_t* buffer_full;  /*!< sempaphore to handle fullness */
 } sems_t;
 
 /* **** FUNCTIONS **** */
