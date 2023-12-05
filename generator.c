@@ -126,9 +126,12 @@ error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* pEdges, 
 
     for(ssize_t i = 0U; i < edgeCnt; i++)
     {
-
-        retCode |= circular_buffer_write(&pSharedMem->circbuf, pSems, &pEdges[i]);
-        debug("Writing edge %d with %d-%d\n", i, pEdges[i].start, pEdges[i].end);
+        // only write edges that are not the delimiter, or default
+        if (pEdges[i].start != 0U)
+        {
+            retCode |= circular_buffer_write(&pSharedMem->circbuf, pSems, &pEdges[i]);
+            debug("Writing edge %d with %d-%d\n", i, pEdges[i].start, pEdges[i].end);
+        }
     }
 
     // write the delimiter
@@ -142,12 +145,120 @@ error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* pEdges, 
     return retCode;
 }
 
+int16_t* get_vertices(edge_t* pEdges, ssize_t edgeCnt)
+{
+    int16_t* vert = calloc(sizeof(int16_t), edgeCnt * 2);
+    memset(vert, -1, sizeof(int16_t) * edgeCnt * 2);
+
+    bool* isIncl = calloc(sizeof(bool), edgeCnt * 2);
+    memset(isIncl, false, sizeof(bool) * edgeCnt * 2);
+
+    for (size_t i = 0; i < edgeCnt; i++)
+    {
+        edge_t currEdge = pEdges[i];
+
+        if (!isIncl[currEdge.start])
+        {
+            vert[i] = currEdge.start;
+            isIncl[currEdge.start] = true;
+            debug("Vert: %d\n", currEdge.start);
+        }
+
+        if (!isIncl[currEdge.end])
+        {
+            vert[i + edgeCnt/2] = currEdge.end;
+            isIncl[currEdge.end] = true;
+            debug("Vert: %d\n", currEdge.end);
+        }
+    }
+    
+    free(isIncl);
+    return vert;
+}
+
+void shuffle(int16_t** pVert, ssize_t edgeCnt)
+{
+    // set the seed for the random number generator
+    srand(getpid());
+
+    // mix the vertices in the array
+    for (ssize_t i = 0U; i < edgeCnt; i++)
+    {
+        ssize_t j = rand() % edgeCnt;
+        int16_t temp = (*pVert)[i];
+        (*pVert)[i] = (*pVert)[j];
+        (*pVert)[j] = temp;
+    }
+}
+
+void sortout_solution(edge_t** pEdges, ssize_t edgeCnt, int16_t* pVert)
+{
+
+    edge_t* temp = calloc(sizeof(edge_t), edgeCnt);
+    uint16_t idxV1 = 0U;
+    uint16_t idxV2 = 0U;
+    size_t tempIdx = 0U;
+
+    for (ssize_t i = 0U; i < edgeCnt; i++)
+    {
+        edge_t currEdge = (*pEdges)[i];
+
+        // search for the indexes of the vertices
+        for (ssize_t j = 0U; j < edgeCnt*2; j++)
+        {
+            if (pVert[j] == currEdge.start)
+            {
+                idxV1 = j;
+            }
+
+            if (pVert[j] == currEdge.end)
+            {
+                idxV2 = j;
+            }
+        }
+
+        if (idxV1 < idxV2)
+        {
+            temp[tempIdx] = currEdge;
+            tempIdx++;
+        }
+    }
+
+    memcpy(*pEdges, temp, sizeof(edge_t) * edgeCnt);
+    free(temp);
+}
+
+
+error_t generate_solution(edge_t* pOrigEdges, edge_t*pSolution, ssize_t edgeCnt)
+{
+    error_t retCode = ERROR_OK;
+
+    // reset the solution
+    memcpy(pSolution, pOrigEdges, sizeof(edge_t) * edgeCnt);
+
+    int16_t* vert = get_vertices(pOrigEdges, edgeCnt);
+
+    // shuffle the edges
+    shuffle(&vert, edgeCnt);
+
+    sortout_solution(&pSolution, edgeCnt, vert);
+
+
+    free(vert);
+
+
+    return retCode;
+}
+
+
+
 int main(int argc, char* argv[])
 {
     debug("This is the generator\n", NULL);
     error_t retCode = ERROR_OK;                      /*!< return code for error handling */
     ssize_t edgeCnt = argc - 1U;                     /*!< number of given edges */
     edge_t* edges = calloc(sizeof(edge_t), edgeCnt); /*!< memory to store all edges */
+    edge_t* solution = calloc(sizeof(edge_t), edgeCnt); /*!< memory to store a solution */
     sems_t semaphores = {0U};                        /*!< struct of all needed semaphores */
     shared_mem_t* pSharedMem = NULL;
     int16_t fd = -1;
@@ -184,8 +295,11 @@ int main(int argc, char* argv[])
         sem_getvalue(semaphores.mutex_write, &semValMut);
         debug("Sem Write: %d, Sem Read: %d, Mut: %d Sols: %d\n", semValWr, semValRd, semValMut, pSharedMem->flags.numSols);
 
+        // generate the solution
+        retCode |= generate_solution(edges, solution, edgeCnt);
+
         // write the edges to the shared memory
-        retCode |= write_solution(pSharedMem, &semaphores, edges, edgeCnt);
+        retCode |= write_solution(pSharedMem, &semaphores, solution, edgeCnt);
 
         sem_post(semaphores.reading);
         debugInt++;
@@ -195,6 +309,8 @@ int main(int argc, char* argv[])
     // unmap memory
     munmap(pSharedMem, sizeof(shared_mem_t));
     cleanup_semaphores(&semaphores);
+    free(edges);
+    free(solution);
 
     return EXIT_SUCCESS;
 }
