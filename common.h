@@ -13,6 +13,7 @@
 
 
 #include "errors.h"
+#include "debug.h"
 
 /* **** SHARED MEMORY **** */
 #include <fcntl.h> /* For O_* constants */
@@ -30,8 +31,8 @@
 #define DELIMITER_VERTEX 0          /*!< Vertex for the delimiter, delimiter edge is defined by a loop to this vertex */
 
 #define SEM_NAME_MUTEX "12220853_sem_mutex"
-#define SEM_NAME_READ "12220853_sem_empty"
-#define SEM_NAME_WRITE "12220853_sem_full"
+#define SEM_NAME_READ "12220853_sem_read"
+#define SEM_NAME_WRITE "12220853_sem_write"
 
 # define BEST_SOL_MAX_EDGES 16U /*!< Maximum number of edges for the best solution */
 

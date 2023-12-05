@@ -111,13 +111,14 @@ error_t init_semaphores(sems_t* pSems)
     sem_unlink(SEM_NAME_WRITE);
 
     // create the named semaphores
-    pSems->mutex_write = sem_open(SEM_NAME_MUTEX, O_CREAT, 0666, 0);
+    pSems->mutex_write = sem_open(SEM_NAME_MUTEX, O_CREAT, 0666, 1);
     pSems->reading = sem_open(SEM_NAME_READ, O_CREAT, 0666, 0);
     pSems->writing = sem_open(SEM_NAME_WRITE, O_CREAT, 0666, CIRBUF_BUFSIZE);
 
     // check if the opening was succesfull
     if ((SEM_FAILED == pSems->reading) || (SEM_FAILED == pSems->mutex_write) || (SEM_FAILED == pSems->writing))
     {
+        debug("Semaphore Open error: %d\n", errno);
         retCode = ERROR_SEMAPHORE;
     }
 
@@ -161,7 +162,7 @@ void handle_sigint(int32_t sig)
     debug("SIGINT received\n", NULL);
 }
 
-error_t init_shmem(shared_mem_t* pSharedMem, int16_t* pFd)
+error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
 {
     error_t retCode = ERROR_OK;
 
@@ -195,10 +196,10 @@ error_t init_shmem(shared_mem_t* pSharedMem, int16_t* pFd)
 	}
 
     // map the shared memory
-    pSharedMem = (shared_mem_t*) mmap(NULL, sizeof(shared_mem_t), PROT_READ | PROT_WRITE, MAP_SHARED, *pFd, 0);
+    *pSharedMem = (shared_mem_t*) mmap(NULL, sizeof(shared_mem_t), PROT_READ | PROT_WRITE, MAP_SHARED, *pFd, 0);
 
     // check if the mapping was successful
-    if (MAP_FAILED == pSharedMem)
+    if (MAP_FAILED == *pSharedMem)
     {
         retCode = ERROR_SHMEM;
         debug("Mapping failed\n", NULL);
@@ -206,7 +207,7 @@ error_t init_shmem(shared_mem_t* pSharedMem, int16_t* pFd)
     }
 
     // if everything was successful, reset the memory
-    memset(pSharedMem, 0, sizeof(shared_mem_t));
+    memset(*pSharedMem, 0, sizeof(shared_mem_t));
     close(*pFd);
 
     return retCode;
@@ -231,6 +232,7 @@ error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems,  edge_t** pEdges)
 
     do
     {
+        debug("Reading edge %d\n", iter);
         retCode |= circular_buffer_read(&pSharedMem->circbuf, pSems, &currEdge);
 
         if(retCode != ERROR_OK)
@@ -280,11 +282,15 @@ int main(int argc, char* argv[])
         emit_error("Something was wrong with creating the semaphores\n", retCode);
     }
 
-    retCode |= init_shmem(pSharedMem, &fd);
+    retCode |= init_shmem(&pSharedMem, &fd);
     debug("Shared Memory initialized: fd: %d, addr: %d\n", fd, pSharedMem);
 
     // main operating loop
     debug("Starting main loop\n", NULL);
+
+    // set the flag that the generators should be active
+    pSharedMem->flags.genActive = true;
+
     while (false == gSigInt)
     {
 
@@ -313,12 +319,14 @@ int main(int argc, char* argv[])
         numSol++;
     }
     debug("SIGINT received, exiting\n", NULL);
+    pSharedMem->flags.genActive = false;
 
     free(bestSol);
     free(currSol);
 
     // unmap memory
     munmap(pSharedMem, sizeof(shared_mem_t));
+    shm_unlink(SHAREDMEM_FILE);
     retCode |= cleanup_semaphores(&semaphores);
 
     return retCode;

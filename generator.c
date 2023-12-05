@@ -46,11 +46,12 @@ error_t init_semaphores(sems_t* pSems)
     // open the named semaphores
     pSems->mutex_write = sem_open(SEM_NAME_MUTEX, 0);
     pSems->reading = sem_open(SEM_NAME_READ, 0);
-    pSems->writing = sem_open(SEM_NAME_WRITE, CIRBUF_BUFSIZE);
+    pSems->writing = sem_open(SEM_NAME_WRITE, 0);
 
-    // check if the opening was succesfull
+    // check if the opening was successful
     if ((SEM_FAILED == pSems->reading) || (SEM_FAILED == pSems->mutex_write) || (SEM_FAILED == pSems->writing))
     {
+        debug("Semaphore Open error: %d\n", errno);
         retCode = ERROR_SEMAPHORE;
     }
 
@@ -83,7 +84,7 @@ error_t cleanup_semaphores(sems_t* pSems)
 }
 
 
-error_t init_shmem(shared_mem_t* pSharedMem, int16_t* pFd)
+error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
 {
     error_t retCode = ERROR_OK;
 
@@ -97,20 +98,20 @@ error_t init_shmem(shared_mem_t* pSharedMem, int16_t* pFd)
         debug("Opening failed %d\n", errno);
         return retCode;
     }
+    debug("Shared fd: %d\n", *pFd);
 
     // map the shared memory
-    pSharedMem = (shared_mem_t*) mmap(NULL, sizeof(shared_mem_t), PROT_READ | PROT_WRITE, MAP_SHARED, *pFd, 0);
+    *pSharedMem = (shared_mem_t*) mmap(NULL, sizeof(shared_mem_t), PROT_READ | PROT_WRITE, MAP_SHARED, *pFd, 0);
+    debug("Shared mem: %p\n", *pSharedMem);
 
     // check if the mapping was successful
-    if (MAP_FAILED == pSharedMem)
+    if (MAP_FAILED == *pSharedMem)
     {
         retCode = ERROR_SHMEM;
         debug("Mapping failed\n", NULL);
         return retCode;
     }
 
-    // if everything was successful, reset the memory
-    memset(pSharedMem, 0, sizeof(shared_mem_t));
     close(*pFd);
 
     return retCode;
@@ -160,8 +161,7 @@ int main(int argc, char* argv[])
         emit_error("Something was wrong with the semaphores\n", retCode);
     }
 
-    retCode |= init_shmem(pSharedMem, &fd);
-    debug("Shared Memory: %p\n", pSharedMem);
+    retCode |= init_shmem(&pSharedMem, &fd);
 
     if (ERROR_OK != retCode)
     {
@@ -169,7 +169,18 @@ int main(int argc, char* argv[])
         emit_error("Something was wrong with the shared memory\n", retCode);
     }
 
-    write_solution(pSharedMem, &semaphores, edges, edgeCnt);
+    while (pSharedMem->flags.genActive)
+    {
+
+        //debug("Sem Write: %d, Sem Read: %d\n", sem_getvalue(&semaphores.writing, NULL), sem_getvalue(&semaphores.reading, NULL));
+        sem_wait(semaphores.mutex_write);
+
+        // write the edges to the shared memory
+        retCode |= write_solution(pSharedMem, &semaphores, edges, edgeCnt);
+
+        sem_post(semaphores.mutex_write);
+    }
+
 
     // unmap memory
     munmap(pSharedMem, sizeof(shared_mem_t));
