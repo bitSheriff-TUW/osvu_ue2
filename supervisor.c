@@ -54,6 +54,9 @@ static void handle_opts(int argc, char** argv, options_t* pOpts)
 {
     int16_t ret = 0;
 
+    // init limit with max
+    pOpts->limit = UINT16_MAX;
+
     while ((ret = getopt(argc, argv, "pn:w:")) != -1)
     {
         switch (ret)
@@ -72,7 +75,7 @@ static void handle_opts(int argc, char** argv, options_t* pOpts)
             // Limit
             case 'n': {
                 // check if option was given more than once
-                if (0 != pOpts->limit)
+                if (UINT16_MAX != pOpts->limit)
                 {
                     usage("Option was given more than once\n");
                 }
@@ -231,27 +234,38 @@ size_t size_of_graph(edge_t* pEds)
     return size;
 }
 
-error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems,  edge_t** pEdges)
+error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems,  edge_t** pEdges, size_t* pEdgeCnt)
 {
     error_t retCode = ERROR_OK;
     edge_t currEdge = {0U};
     size_t iter = 0;
+    *pEdgeCnt = SIZE_MAX; // set max value, due to interrupt
 
-    do
+    while(true)
     {
-        debug("Reading edge %d\n", iter);
         retCode |= circular_buffer_read(&pSharedMem->circbuf, pSems, &currEdge);
+
+        debug("Read edge %d with %d-%d\n", iter, currEdge.start, currEdge.end);
+
+        if (is_edge_delimiter(currEdge))
+        {
+            break;
+        }
+       
 
         if(retCode != ERROR_OK)
         {
+            debug("Error while reading\n", NULL);
             return retCode;
         }
         else
         {
-            memcpy(pEdges[iter], &currEdge, sizeof(edge_t));
+            memcpy(&(*pEdges)[iter], &currEdge, sizeof(edge_t));
             iter++;
         }
-    } while (!is_edge_delimiter(currEdge));
+    }
+
+    *pEdgeCnt = iter;
     
     return retCode;
 }
@@ -264,8 +278,8 @@ int main(int argc, char* argv[])
     shared_mem_t* pSharedMem = NULL;
     edge_t* bestSol = {0U}; /* best found solution */
     edge_t* currSol = {0U}; /* current solution */
-    size_t bestSolSize = 0U;                   /* size of the best solution */
-    size_t currSolSize = 0U;                   /* size of the current solution */
+    size_t bestSolSize = SIZE_MAX;                   /* size of the best solution */
+    size_t currSolSize = SIZE_MAX;                   /* size of the current solution */
     int16_t fd = -1;                           /* file descriptor of the shared memory */
 
     // allocate the memory for the solutions
@@ -280,6 +294,7 @@ int main(int argc, char* argv[])
 
     /* get the options */
     handle_opts(argc, argv, &opts);
+    debug("Options: Print: %d, Limit: %d, Delay: %d\n", opts.print, opts.limit, opts.delayS);
 
     retCode |= init_semaphores(&semaphores);
     debug("Semaphores initialized\n", NULL);
@@ -298,24 +313,22 @@ int main(int argc, char* argv[])
     // set the flag that the generators should be active
     pSharedMem->flags.genActive = true;
 
-        ssize_t numSol = 0U;
-    while (false == gSigInt)
+    while ((false == gSigInt) && (pSharedMem->flags.numSols < opts.limit))
     {
-
+        currSolSize = SIZE_MAX;
         int semValWr, semValRd, semValMut;
         sem_getvalue(semaphores.writing, &semValWr);
         sem_getvalue(semaphores.reading, &semValRd);
         sem_getvalue(semaphores.mutex_write, &semValMut);
-        debug("Sem Write: %d, Sem Read: %d, Mut: %d\n", semValWr, semValRd, semValMut);
+        debug("Sem Write: %d, Sem Read: %d, Mut: %d Sols: %d\n", semValWr, semValRd, semValMut, pSharedMem->flags.numSols);
 
         sem_wait(semaphores.reading);
 
-        get_solution(pSharedMem, &semaphores, &currSol);
-        debug("Solution %ld: ", numSol);
+        get_solution(pSharedMem, &semaphores, &currSol, &currSolSize);
 
-        currSolSize = size_of_graph(currSol);
+        debug("Best: %d, Curr: %d\n", bestSolSize, currSolSize);
 
-        if(currSolSize < bestSolSize)
+        if((currSolSize < bestSolSize) && (currSolSize != 0U))
         {
             memcpy(bestSol, currSol, sizeof(edge_t) * currSolSize);
             bestSolSize = currSolSize;
@@ -329,10 +342,12 @@ int main(int argc, char* argv[])
         // }
         
         sem_post(semaphores.writing);
-        numSol++;
     }
-    debug("SIGINT received, exiting\n", NULL);
+
     pSharedMem->flags.genActive = false;
+
+    // print the best solution
+    fprintf(stdout, "Best Solution removes %ld edges\n", bestSolSize);
 
     free(bestSol);
     free(currSol);

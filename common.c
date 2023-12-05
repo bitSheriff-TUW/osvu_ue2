@@ -41,12 +41,6 @@ error_t circular_buffer_read(shared_mem_circbuf_t* pCirBuf, sems_t* pSems, edge_
         return ERROR_NULLPTR;
     }
 
-    // check if the buffer is empty
-    if (pCirBuf->head == pCirBuf->tail)
-    {
-        return ERROR_CIRBUF_EMPTY;
-    }
-
     // cannot read if buffer is empty, so check if the buffer has elements
     if (sem_wait(pSems->reading) < 0) return ERROR_SEMAPHORE;
 
@@ -73,13 +67,6 @@ error_t circular_buffer_write(shared_mem_circbuf_t* pCirBuf, sems_t* pSems, edge
     // mutex: only one generator is allowed to write at the same time
     // if the buffer is full, you have to wait until it gets read
     if (sem_wait(pSems->writing) < 0) return ERROR_SEMAPHORE;
-    debug("Writing to buffer; writing wait\n", NULL);
-
-    // check if the buffer is full
-    if (pCirBuf->head == pCirBuf->tail)
-    {
-        return ERROR_CIRBUF_FULL;
-    }
 
     // set the element
     memcpy(&pCirBuf->buf[pCirBuf->head], pEd, sizeof(edge_t));
@@ -88,7 +75,7 @@ error_t circular_buffer_write(shared_mem_circbuf_t* pCirBuf, sems_t* pSems, edge
     // mutex: now another generator can write
     // something was written into the buffer, so the supervisor can read something now
     if (sem_post(pSems->reading) < 0) return ERROR_SEMAPHORE;
-    debug("Writing to buffer; reading post\n", NULL);
+   
 
     return retCode;
 }

@@ -134,6 +134,9 @@ error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* pEdges, 
     // write the delimiter
     retCode |= circular_buffer_write(&pSharedMem->circbuf, pSems, &del);
 
+    // increase the number of solutions
+    pSharedMem->flags.numSols++;
+
     if (sem_post(pSems->mutex_write) < 0) return ERROR_SEMAPHORE;
 
     return retCode;
@@ -170,18 +173,22 @@ int main(int argc, char* argv[])
         emit_error("Something was wrong with the shared memory\n", retCode);
     }
 
-    while (pSharedMem->flags.genActive)
+
+    int debugInt = 0; 
+
+    while ( (pSharedMem->flags.genActive) && debugInt < 10)
     {
         int semValWr, semValRd, semValMut;
         sem_getvalue(semaphores.writing, &semValWr);
         sem_getvalue(semaphores.reading, &semValRd);
         sem_getvalue(semaphores.mutex_write, &semValMut);
-        debug("Sem Write: %d, Sem Read: %d, Mut: %d\n", semValWr, semValRd, semValMut);
+        debug("Sem Write: %d, Sem Read: %d, Mut: %d Sols: %d\n", semValWr, semValRd, semValMut, pSharedMem->flags.numSols);
 
         // write the edges to the shared memory
         retCode |= write_solution(pSharedMem, &semaphores, edges, edgeCnt);
 
         sem_post(semaphores.reading);
+        debugInt++;
     }
 
 

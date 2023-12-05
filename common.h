@@ -57,6 +57,7 @@ typedef struct
 typedef struct
 {
     bool genActive; /*!< Flag that the generators should be active */
+    ssize_t numSols; /*!< Number of solutions found */
 } shared_mem_flags_t;
 
 typedef struct
