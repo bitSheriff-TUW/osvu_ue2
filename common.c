@@ -7,6 +7,13 @@
 
 #include "errors.h"
 
+/**
+ * @file common.c
+ * @author  Benjamin Mandl (12220853)
+ * @date 2023-11-07
+ */
+
+
 /*!
  * @brief       Emit Error
  *
