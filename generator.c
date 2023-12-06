@@ -320,6 +320,7 @@ int main(int argc, char* argv[])
         if(0U == solSize)
         {
             debug("Solution with 0 edges found, terminating now, supervise will terminate too\n", NULL);
+            sem_post(semaphores.reading);
             break;
         }
 
