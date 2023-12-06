@@ -270,6 +270,16 @@ error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems,  edge_t** pEdges, 
     return retCode;
 }
 
+void print_solution(edge_t* pEdges, size_t edgeCnt)
+{
+    fprintf(stderr, "Solution with %zu edges:", edgeCnt);
+    for (size_t i = 0; i < edgeCnt; i++)
+    {
+        fprintf(stderr, " %d-%d", pEdges[i].start, pEdges[i].end);
+    }
+    fprintf(stderr, "%s", "\n");
+}
+
 int main(int argc, char* argv[])
 {
     error_t retCode = ERROR_OK; /*!< return code */
@@ -283,14 +293,21 @@ int main(int argc, char* argv[])
     int16_t fd = -1;                           /* file descriptor of the shared memory */
 
     // allocate the memory for the solutions
-    bestSol = calloc(sizeof(edge_t), BEST_SOL_MAX_EDGES);
-    currSol = calloc(sizeof(edge_t), BEST_SOL_MAX_EDGES);
+    bestSol = malloc(sizeof(edge_t) * BEST_SOL_MAX_EDGES);
+    currSol = malloc(sizeof(edge_t) * BEST_SOL_MAX_EDGES);
+
+    if ((bestSol == NULL) || (currSol == NULL))
+    {
+        emit_error("Something was wrong with allocating memory\n", retCode);
+    }
+    
 
     // register the signal handler
     struct sigaction sa = { 
     .sa_handler = handle_sigint 
     };
     sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
 
     /* get the options */
     handle_opts(argc, argv, &opts);
@@ -307,15 +324,30 @@ int main(int argc, char* argv[])
     retCode |= init_shmem(&pSharedMem, &fd);
     debug("Shared Memory initialized: fd: %d, addr: %d\n", fd, pSharedMem);
 
+    if (opts.delayS > 0U)
+    {
+        // sleep for the given time
+        sleep(opts.delayS);
+        debug("Delay done\n", NULL);
+    }
+    
     // main operating loop
     debug("Starting main loop\n", NULL);
 
     // set the flag that the generators should be active
     pSharedMem->flags.genActive = true;
 
+
+    debug("Mem best %ld, curr %ld\n", bestSol, currSol);
+
     while ((false == gSigInt) && (pSharedMem->flags.numSols < opts.limit))
     {
+
+        // reset the memory
+        memset(currSol, 0, sizeof(edge_t) * BEST_SOL_MAX_EDGES);
         currSolSize = SIZE_MAX;
+
+        // TODO: remove debug
         int semValWr, semValRd, semValMut;
         sem_getvalue(semaphores.writing, &semValWr);
         sem_getvalue(semaphores.reading, &semValRd);
@@ -325,7 +357,7 @@ int main(int argc, char* argv[])
         // check if there is something to read, and further if semaphores are successful
         if( 0 != sem_wait(semaphores.reading))
         {
-            if(errno == EINTR)
+            if((errno == EINTR) && (gSigInt == true))
             {
                 break;
             }
@@ -335,18 +367,18 @@ int main(int argc, char* argv[])
 
         debug("Best: %ld, Curr: %d\n", bestSolSize, currSolSize);
 
-        if((currSolSize < bestSolSize) && (currSolSize != 0U))
+        if(currSolSize < bestSolSize)
         {
+            print_solution(currSol, currSolSize);
             memcpy(bestSol, currSol, sizeof(edge_t) * currSolSize);
             bestSolSize = currSolSize;
-            debug("New best solution found with %d edges removed\n", bestSolSize);
         }
 
-        // if (bestSolSize == 0U)
-        // {
-        //     fprintf(stdout, "The graph is acyclic!\n");
-        //     break;
-        // }
+        // no edges needed to be removed, so finish
+        if (bestSolSize == 0U)
+        {
+            break;
+        }
         
         sem_post(semaphores.writing);
     }
@@ -354,14 +386,31 @@ int main(int argc, char* argv[])
     pSharedMem->flags.genActive = false;
 
     // print the best solution
-    fprintf(stdout, "Best Solution removes %ld edges\n", bestSolSize);
+    switch (bestSolSize)
+    {
+        case 0U:
+            fprintf(stdout, "The graph is acyclic!\n");
+            break;
+        case SIZE_MAX:
+            fprintf(stdout, "The graph might not be acyclic, no solution found.\n");
+            break;
+        default:
+            fprintf(stdout, "The graph might not be acyclic, best solution removes %zu edges.\n", bestSolSize);
+            break;
+    }
 
+    // free the memory
     free(bestSol);
     free(currSol);
+    bestSol = NULL;
+    currSol = NULL;
 
     // unmap memory
-    munmap(pSharedMem, sizeof(shared_mem_t));
-    shm_unlink(SHAREDMEM_FILE);
+    if( munmap(pSharedMem, sizeof(shared_mem_t)) == 0)
+    {
+        shm_unlink(SHAREDMEM_FILE);
+    }
+
     retCode |= cleanup_semaphores(&semaphores);
 
     return retCode;

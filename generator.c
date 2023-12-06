@@ -117,10 +117,11 @@ error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
     return retCode;
 }
 
-error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* pEdges, ssize_t edgeCnt)
+error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* pEdges, ssize_t edgeCnt, size_t* pWritten)
 {
     error_t retCode = ERROR_OK;
     edge_t del = { DELIMITER_VERTEX, DELIMITER_VERTEX};
+    *pWritten = 0U;
 
     if (sem_wait(pSems->mutex_write) < 0) return ERROR_SEMAPHORE;
 
@@ -131,6 +132,7 @@ error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* pEdges, 
         {
             retCode |= circular_buffer_write(&pSharedMem->circbuf, pSems, &pEdges[i]);
             debug("Writing edge %d with %d-%d\n", i, pEdges[i].start, pEdges[i].end);
+            *pWritten += 1U;
         }
     }
 
@@ -147,10 +149,10 @@ error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* pEdges, 
 
 int16_t* get_vertices(edge_t* pEdges, ssize_t edgeCnt)
 {
-    int16_t* vert = calloc(sizeof(int16_t), edgeCnt * 2);
+    int16_t* vert = malloc(sizeof(int16_t) * edgeCnt * 2);
     memset(vert, -1, sizeof(int16_t) * edgeCnt * 2);
 
-    bool* isIncl = calloc(sizeof(bool), edgeCnt * 2);
+    bool* isIncl = malloc(sizeof(bool) * edgeCnt * 2);
     memset(isIncl, false, sizeof(bool) * edgeCnt * 2);
 
     for (size_t i = 0; i < edgeCnt; i++)
@@ -259,9 +261,7 @@ error_t generate_solution(edge_t* pOrigEdges, edge_t*pSolution, ssize_t edgeCnt)
 
     sortout_solution(&pSolution, edgeCnt, vert);
 
-
     free(vert);
-
 
     return retCode;
 }
@@ -273,11 +273,12 @@ int main(int argc, char* argv[])
     debug("This is the generator\n", NULL);
     error_t retCode = ERROR_OK;                      /*!< return code for error handling */
     ssize_t edgeCnt = argc - 1U;                     /*!< number of given edges */
-    edge_t* edges = calloc(sizeof(edge_t), edgeCnt); /*!< memory to store all edges */
-    edge_t* solution = calloc(sizeof(edge_t), edgeCnt); /*!< memory to store a solution */
+    edge_t* edges = malloc(sizeof(edge_t) * edgeCnt); /*!< memory to store all edges */
+    edge_t* solution = malloc(sizeof(edge_t) * edgeCnt); /*!< memory to store a solution */
     sems_t semaphores = {0U};                        /*!< struct of all needed semaphores */
     shared_mem_t* pSharedMem = NULL;
     int16_t fd = -1;
+    size_t solSize = 0U;
 
     debug("Number of Edges: %ld\n", edgeCnt);
 
@@ -303,6 +304,7 @@ int main(int argc, char* argv[])
 
     while (pSharedMem->flags.genActive)
     {
+        // TODO: remove debugs
         int semValWr, semValRd, semValMut;
         sem_getvalue(semaphores.writing, &semValWr);
         sem_getvalue(semaphores.reading, &semValRd);
@@ -313,7 +315,13 @@ int main(int argc, char* argv[])
         retCode |= generate_solution(edges, solution, edgeCnt);
 
         // write the edges to the shared memory
-        retCode |= write_solution(pSharedMem, &semaphores, solution, edgeCnt);
+        retCode |= write_solution(pSharedMem, &semaphores, solution, edgeCnt, &solSize);
+
+        if(0U == solSize)
+        {
+            debug("Solution with 0 edges found, terminating now, supervise will terminate too\n", NULL);
+            break;
+        }
 
         sem_post(semaphores.reading);
     }

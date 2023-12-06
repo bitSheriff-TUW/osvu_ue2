@@ -3,6 +3,7 @@
 #include <semaphore.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #include "errors.h"
 
@@ -76,6 +77,7 @@ error_t circular_buffer_write(shared_mem_circbuf_t* pCirBuf, sems_t* pSems, edge
     // something was written into the buffer, so the supervisor can read something now
     if (sem_post(pSems->reading) < 0) return ERROR_SEMAPHORE;
    
+   assert(pCirBuf->head < CIRBUF_BUFSIZE &&  pCirBuf->tail < CIRBUF_BUFSIZE);
 
     return retCode;
 }
