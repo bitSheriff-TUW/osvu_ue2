@@ -174,6 +174,10 @@ static error_t cleanup_semaphores(sems_t* pSems)
             debug("Semaphore Unlink error: Buffer Full\n", NULL);
             retCode |= ERROR_SEMAPHORE;
         }
+        else
+        {
+            debug("Semaphore Unlink successful: Buffer Full\n", NULL);
+        }
     }
 
     if (sem_close(pSems->reading) == -1)
@@ -188,6 +192,10 @@ static error_t cleanup_semaphores(sems_t* pSems)
             debug("Semaphore Unlink error: Buffer Empty\n", NULL);
             retCode |= ERROR_SEMAPHORE;
         }
+        else
+        {
+            debug("Semaphore Unlink successful: Buffer Empty\n", NULL);
+        }
     }
 
     if (sem_close(pSems->mutex_write) == -1)
@@ -196,11 +204,16 @@ static error_t cleanup_semaphores(sems_t* pSems)
         retCode |= ERROR_SEMAPHORE;
     } else
     {
+        debug("Semaphore Close successful: Mutex\n", NULL);
         // unlink the semaphore
         if (sem_unlink(SEM_NAME_MUTEX) == -1)
         {
             debug("Semaphore Unlink error: Mutex\n", NULL);
             retCode |= ERROR_SEMAPHORE;
+        }
+        else
+        {
+            debug("Semaphore Unlink successful: Mutex\n", NULL);
         }
     }
 
