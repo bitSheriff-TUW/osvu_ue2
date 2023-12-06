@@ -204,12 +204,14 @@ static error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* p
     for (ssize_t i = 0U; i < edgeCnt; i++)
     {
         // only write edges that are not the delimiter, or default
-        if (pEdges[i].start != 0U)
+        if (!is_edge_delimiter(pEdges[i]))
         {
             retCode |= circular_buffer_write(&pSharedMem->circbuf, pSems, &pEdges[i]);
             debug("Writing edge %d with %d-%d\n", i, pEdges[i].start, pEdges[i].end);
             *pWritten += 1U;
         }
+
+        debug("Solution Edge %d with %d-%d\n", i, pEdges[i].start, pEdges[i].end);
     }
 
     // write the delimiter
@@ -443,13 +445,6 @@ int main(int argc, char* argv[])
 
     while (pSharedMem->flags.genActive)
     {
-        // TODO: remove debugs
-        int semValWr, semValRd, semValMut;
-        sem_getvalue(semaphores.writing, &semValWr);
-        sem_getvalue(semaphores.reading, &semValRd);
-        sem_getvalue(semaphores.mutex_write, &semValMut);
-        debug("Sem Write: %d, Sem Read: %d, Mut: %d Sols: %d\n", semValWr, semValRd, semValMut, pSharedMem->flags.numSols);
-
         // generate the solution
         retCode |= generate_solution(edges, solution, edgeCnt);
 
