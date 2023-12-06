@@ -442,22 +442,22 @@ int main(int argc, char* argv[])
     while (pSharedMem->flags.genActive)
     {
         debug("Next Solution\n", NULL);
-        
+
         // generate the solution
         retCode |= generate_solution(edges, solution, edgeCnt);
 
         // write the edges to the shared memory
         retCode |= write_solution(pSharedMem, &semaphores, solution, edgeCnt, &solSize);
 
+        // signal that a solution was written, supervisor can read it now
+        sem_post(semaphores.reading);
+
         // check if the solution is empty, this means termination
         if (0U == solSize)
         {
             debug("Solution with 0 edges found, terminating now, supervise will terminate too\n", NULL);
-            sem_post(semaphores.reading);
             break;
         }
-
-        sem_post(semaphores.reading);
     }
 
     // unmap memory
