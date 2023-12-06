@@ -29,13 +29,15 @@ typedef struct
 
 /**
  * @brief Signal Interrupt
- * @details This global boolean flag is used to check if a signal interrupt happend
+ * @details This global boolean flag is used to check if a signal interrupt happened
  */
-static bool gSigInt = false;
+static bool gSigInt = false; /*!< Signal Interrupt */
+static const char* gAppName; /*!< Name of the application */
 
 static void usage(char* msg)
 {
-    // TODO: add usage prints
+    // print the usage message
+    fprintf(stderr, "%s\n", msg);
     emit_error(msg, ERROR_PARAM);
 }
 
@@ -114,9 +116,9 @@ error_t init_semaphores(sems_t* pSems)
     sem_unlink(SEM_NAME_WRITE);
 
     // create the named semaphores
-    pSems->mutex_write = sem_open(SEM_NAME_MUTEX, O_CREAT | O_EXCL, 0666, 1);
-    pSems->reading = sem_open(SEM_NAME_READ, O_CREAT | O_EXCL, 0666, 0);
-    pSems->writing = sem_open(SEM_NAME_WRITE, O_CREAT | O_EXCL, 0666, CIRBUF_BUFSIZE);
+    pSems->mutex_write = sem_open(SEM_NAME_MUTEX, O_CREAT, 0666, 1);
+    pSems->reading = sem_open(SEM_NAME_READ, O_CREAT, 0666, 0);
+    pSems->writing = sem_open(SEM_NAME_WRITE, O_CREAT, 0666, CIRBUF_BUFSIZE);
 
     // check if the opening was succesfull
     if ((SEM_FAILED == pSems->reading) || (SEM_FAILED == pSems->mutex_write) || (SEM_FAILED == pSems->writing))
@@ -321,6 +323,9 @@ int main(int argc, char* argv[])
     size_t currSolSize = SIZE_MAX;                   /* size of the current solution */
     int16_t fd = -1;                           /* file descriptor of the shared memory */
 
+    // set the application name
+    gAppName = argv[0];
+
     // allocate the memory for the solutions
     bestSol = malloc(sizeof(edge_t) * BEST_SOL_MAX_EDGES);
     currSol = malloc(sizeof(edge_t) * BEST_SOL_MAX_EDGES);
@@ -353,6 +358,9 @@ int main(int argc, char* argv[])
     retCode |= init_shmem(&pSharedMem, &fd);
     debug("Shared Memory initialized: fd: %d, addr: %d\n", fd, pSharedMem);
 
+    // set the flag that the generators should be active
+    pSharedMem->flags.genActive = true;
+
     if (opts.delayS > 0U)
     {
         // sleep for the given time
@@ -362,12 +370,6 @@ int main(int argc, char* argv[])
     
     // main operating loop
     debug("Starting main loop\n", NULL);
-
-    // set the flag that the generators should be active
-    pSharedMem->flags.genActive = true;
-
-
-    debug("Mem best %ld, curr %ld\n", bestSol, currSol);
 
     // main loop
     // SIZE_MAX is the indicator for unlimited solutions

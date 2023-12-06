@@ -13,6 +13,8 @@
 #include "debug.h"
 #include "errors.h"
 
+static const char* gAppName; /*!< Name of the application */
+
 static void readEdges(edge_t* pEdges[], char** argv, ssize_t argc)
 {
     // check if edges were given, more than one is needed
@@ -279,6 +281,9 @@ int main(int argc, char* argv[])
     shared_mem_t* pSharedMem = NULL;
     int16_t fd = -1;
     size_t solSize = 0U;
+
+    // set the application name
+    gAppName = argv[0];
 
     debug("Number of Edges: %ld\n", edgeCnt);
 
