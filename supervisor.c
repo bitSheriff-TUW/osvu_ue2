@@ -322,7 +322,14 @@ int main(int argc, char* argv[])
         sem_getvalue(semaphores.mutex_write, &semValMut);
         debug("Sem Write: %d, Sem Read: %d, Mut: %d Sols: %d\n", semValWr, semValRd, semValMut, pSharedMem->flags.numSols);
 
-        sem_wait(semaphores.reading);
+        // check if there is something to read, and further if semaphores are successful
+        if( 0 != sem_wait(semaphores.reading))
+        {
+            if(errno == EINTR)
+            {
+                break;
+            }
+        }
 
         get_solution(pSharedMem, &semaphores, &currSol, &currSolSize);
 
