@@ -34,10 +34,15 @@ typedef struct
 static bool gSigInt = false; /*!< Signal Interrupt */
 static const char* gAppName; /*!< Name of the application */
 
+/**
+ * @brief   Usage
+ * @details This internal method is used to print the usage message and exit the application.
+ * @param   msg     Message which will be printed
+*/
 static void usage(char* msg)
 {
     // print the usage message
-    fprintf(stderr, "%s\n", msg);
+    fprintf(stderr, "%s\nUsage: %s [-n limit] [-w delay]\n", msg, gAppName);
     emit_error(msg, ERROR_PARAM);
 }
 
@@ -106,7 +111,7 @@ static void handle_opts(int argc, char** argv, options_t* pOpts)
     }
 }
 
-error_t init_semaphores(sems_t* pSems)
+static error_t init_semaphores(sems_t* pSems)
 {
     error_t retCode = ERROR_OK;
 
@@ -130,7 +135,7 @@ error_t init_semaphores(sems_t* pSems)
     return retCode;
 }
 
-error_t cleanup_semaphores(sems_t* pSems)
+static error_t cleanup_semaphores(sems_t* pSems)
 {
     error_t retCode = ERROR_OK;
 
@@ -179,14 +184,14 @@ error_t cleanup_semaphores(sems_t* pSems)
     return retCode;
 }
 
-void handle_sigint(int32_t sig)
+static void handle_sigint(int32_t sig)
 {
     // set the global variable to true
     gSigInt = true;
     debug("SIGINT received\n", NULL);
 }
 
-error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
+static error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
 {
     error_t retCode = ERROR_OK;
 
@@ -243,18 +248,7 @@ error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
     return retCode;
 }
 
-size_t size_of_graph(edge_t* pEds)
-{
-    size_t size = 0U;
-    while ((is_edge_delimiter(pEds[size])) && (size < BEST_SOL_MAX_EDGES))
-    {
-        size++;
-    }
-
-    return size;
-}
-
-error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t** pEdges, size_t* pEdgeCnt)
+static error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t** pEdges, size_t* pEdgeCnt)
 {
     error_t retCode = ERROR_OK;
     edge_t currEdge = {0U};
@@ -288,7 +282,7 @@ error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t** pEdges, s
     return retCode;
 }
 
-void print_solution(edge_t* pEdges, size_t edgeCnt)
+static void print_solution(edge_t* pEdges, size_t edgeCnt)
 {
     // do not print if there are no edges
     if (edgeCnt == 0U)

@@ -15,12 +15,25 @@
 
 static const char* gAppName; /*!< Name of the application */
 
+
+/**
+ * @brief   Usage
+ * @details This internal method is used to print the usage message and exit the application.
+ * @param   msg     Message which will be printed
+*/
+static void usage(char* msg)
+{
+    // print the usage message
+    fprintf(stderr, "%s\nUsage: %s [-n limit] [-w delay]\n", msg, gAppName);
+    emit_error(msg, ERROR_PARAM);
+}
+
 static void readEdges(edge_t* pEdges[], char** argv, ssize_t argc)
 {
     // check if edges were given, more than one is needed
     if (2 > argc)
     {
-        emit_error("Not enough parameter given\n", ERROR_PARAM);
+        usage("Not enough parameter given");
     }
 
     // step through all the given parameters and parse the endges
@@ -29,7 +42,7 @@ static void readEdges(edge_t* pEdges[], char** argv, ssize_t argc)
         // the vertices are separated with a dash, and the edges with a space
         if (sscanf(argv[i], "%hu-%hu", &((*pEdges)[i - 1].start), &((*pEdges)[i - 1].end)) < 0)
         {
-            emit_error("Something went wrong with reading edges\n", ERROR_PARAM);
+            usage("Something went wrong with reading edges\n");
         }
 
         // check for loop
@@ -41,7 +54,7 @@ static void readEdges(edge_t* pEdges[], char** argv, ssize_t argc)
     }
 }
 
-error_t init_semaphores(sems_t* pSems)
+static error_t init_semaphores(sems_t* pSems)
 {
     error_t retCode = ERROR_OK;
 
@@ -60,7 +73,7 @@ error_t init_semaphores(sems_t* pSems)
     return retCode;
 }
 
-error_t cleanup_semaphores(sems_t* pSems)
+static error_t cleanup_semaphores(sems_t* pSems)
 {
     error_t retCode = ERROR_OK;
 
@@ -85,7 +98,7 @@ error_t cleanup_semaphores(sems_t* pSems)
     return retCode;
 }
 
-error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
+static error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
 {
     error_t retCode = ERROR_OK;
 
@@ -118,7 +131,7 @@ error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
     return retCode;
 }
 
-error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* pEdges, ssize_t edgeCnt, size_t* pWritten)
+static error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* pEdges, ssize_t edgeCnt, size_t* pWritten)
 {
     error_t retCode = ERROR_OK;
     edge_t del = {DELIMITER_VERTEX, DELIMITER_VERTEX};
@@ -148,7 +161,7 @@ error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* pEdges, 
     return retCode;
 }
 
-int16_t* get_vertices(edge_t* pEdges, ssize_t edgeCnt)
+static int16_t* get_vertices(edge_t* pEdges, ssize_t edgeCnt)
 {
     int16_t* vert = malloc(sizeof(int16_t) * edgeCnt * 2);
     memset(vert, -1, sizeof(int16_t) * edgeCnt * 2);
@@ -179,7 +192,7 @@ int16_t* get_vertices(edge_t* pEdges, ssize_t edgeCnt)
     return vert;
 }
 
-uint16_t get_random_seed()
+static uint16_t get_random_seed()
 {
     uint16_t seed = 0U;
     FILE* fp = fopen("/dev/urandom", "r");
@@ -195,7 +208,7 @@ uint16_t get_random_seed()
     return seed;
 }
 
-void shuffle(int16_t** pVert, ssize_t edgeCnt)
+static void shuffle(int16_t** pVert, ssize_t edgeCnt)
 {
     // set the seed for the random number generator
     srand(get_random_seed());
@@ -210,7 +223,7 @@ void shuffle(int16_t** pVert, ssize_t edgeCnt)
     }
 }
 
-void sortout_solution(edge_t** pEdges, ssize_t edgeCnt, int16_t* pVert)
+static void sortout_solution(edge_t** pEdges, ssize_t edgeCnt, int16_t* pVert)
 {
     edge_t* temp = calloc(sizeof(edge_t), edgeCnt);
     uint16_t idxV1 = 0U;
@@ -246,7 +259,7 @@ void sortout_solution(edge_t** pEdges, ssize_t edgeCnt, int16_t* pVert)
     free(temp);
 }
 
-error_t generate_solution(edge_t* pOrigEdges, edge_t* pSolution, ssize_t edgeCnt)
+static error_t generate_solution(edge_t* pOrigEdges, edge_t* pSolution, ssize_t edgeCnt)
 {
     error_t retCode = ERROR_OK;
 
