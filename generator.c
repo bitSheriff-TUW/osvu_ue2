@@ -210,8 +210,6 @@ static error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* p
             debug("Writing edge %d with %d-%d\n", i, pEdges[i].start, pEdges[i].end);
             *pWritten += 1U;
         }
-
-        debug("Solution Edge %d with %d-%d\n", i, pEdges[i].start, pEdges[i].end);
     }
 
     // write the delimiter
@@ -251,14 +249,12 @@ static int16_t* get_vertices(edge_t* pEdges, ssize_t edgeCnt)
         {
             vert[i] = currEdge.start;
             isIncl[currEdge.start] = true;
-            debug("Vert: %d\n", currEdge.start);
         }
 
         if (!isIncl[currEdge.end])
         {
             vert[i + edgeCnt / 2] = currEdge.end;
             isIncl[currEdge.end] = true;
-            debug("Vert: %d\n", currEdge.end);
         }
     }
 
@@ -298,9 +294,6 @@ static uint16_t get_random_seed()
  */
 static void shuffle(int16_t** pVert, ssize_t edgeCnt)
 {
-    // set the seed for the random number generator
-    srand(get_random_seed());
-
     // mix the vertices in the array
     for (ssize_t i = 0U; i < edgeCnt; i++)
     {
@@ -443,8 +436,13 @@ int main(int argc, char* argv[])
         emit_error("Something was wrong with the shared memory\n", retCode);
     }
 
+    // set the seed for the random number generator
+    srand(get_random_seed());
+
     while (pSharedMem->flags.genActive)
     {
+        debug("Next Solution\n", NULL);
+        
         // generate the solution
         retCode |= generate_solution(edges, solution, edgeCnt);
 
