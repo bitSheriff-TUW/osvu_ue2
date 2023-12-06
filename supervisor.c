@@ -55,7 +55,7 @@ static void handle_opts(int argc, char** argv, options_t* pOpts)
     int16_t ret = 0;
 
     // init limit with max
-    pOpts->limit = UINT16_MAX;
+    pOpts->limit = 0U;
 
     while ((ret = getopt(argc, argv, "pn:w:")) != -1)
     {
@@ -137,11 +137,29 @@ error_t cleanup_semaphores(sems_t* pSems)
         debug("Semaphore Close error: Buffer Full\n", NULL);
         retCode |= ERROR_SEMAPHORE;
     }
+    else
+    {
+        // unlink the semaphore
+        if (sem_unlink(SEM_NAME_WRITE) == -1)
+        {
+            debug("Semaphore Unlink error: Buffer Full\n", NULL);
+            retCode |= ERROR_SEMAPHORE;
+        }
+    }
 
     if (sem_close(pSems->reading) == -1)
     {
         debug("Semaphore Close error: Buffer Empty\n", NULL);
         retCode |= ERROR_SEMAPHORE;
+    }
+    else
+    {
+        // unlink the semaphore
+        if (sem_unlink(SEM_NAME_READ) == -1)
+        {
+            debug("Semaphore Unlink error: Buffer Empty\n", NULL);
+            retCode |= ERROR_SEMAPHORE;
+        }
     }
 
     if (sem_close(pSems->mutex_write) == -1)
@@ -149,11 +167,15 @@ error_t cleanup_semaphores(sems_t* pSems)
         debug("Semaphore Close error: Mutex\n", NULL);
         retCode |= ERROR_SEMAPHORE;
     }
-
-    // delete the semaphore files, if something fails here, there is now proper way to react, so ignore the retVal
-    (void)sem_unlink(SEM_NAME_MUTEX);
-    (void)sem_unlink(SEM_NAME_READ);
-    (void)sem_unlink(SEM_NAME_WRITE);
+    else
+    {
+        // unlink the semaphore
+        if (sem_unlink(SEM_NAME_MUTEX) == -1)
+        {
+            debug("Semaphore Unlink error: Mutex\n", NULL);
+            retCode |= ERROR_SEMAPHORE;
+        }
+    }
 
     return retCode;
 }
@@ -340,7 +362,9 @@ int main(int argc, char* argv[])
 
     debug("Mem best %ld, curr %ld\n", bestSol, currSol);
 
-    while ((false == gSigInt) && (pSharedMem->flags.numSols < opts.limit))
+    // main loop
+    // SIZE_MAX is the indicator for unlimited solutions
+    while ((false == gSigInt) && ((pSharedMem->flags.numSols < opts.limit)) || (opts.limit == 0U))
     {
 
         // reset the memory
@@ -408,10 +432,28 @@ int main(int argc, char* argv[])
     // unmap memory
     if( munmap(pSharedMem, sizeof(shared_mem_t)) == 0)
     {
-        shm_unlink(SHAREDMEM_FILE);
+        debug("Unmapping successful\n", NULL);
+        if ( 0U != shm_unlink(SHAREDMEM_FILE))
+        {
+            debug("Unlinking failed errno: %d\n", errno);
+        }
+        else
+        {
+            debug("Unlinking successful\n", NULL);
+        }
+    }
+    else
+    {
+        debug("Unmapping failed\n", NULL);
     }
 
     retCode |= cleanup_semaphores(&semaphores);
+
+    if (0 != retCode)
+    {
+        emit_error("Something was wrong with the cleaning semaphores\n", retCode);
+    }
+   
 
     return retCode;
 }
