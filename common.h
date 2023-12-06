@@ -26,7 +26,7 @@
 #include <unistd.h>
 
 #define SHAREDMEM_FILE "12220853_sharedMem" /*!< Name of the shared memory file */
-#define CIRBUF_BUFSIZE 256U                 // TODO: better size
+#define CIRBUF_BUFSIZE 256U                 /*!< Size of the circular buffer */
 #define DELIMITER_VERTEX 0                  /*!< Vertex for the delimiter, delimiter edge is defined by a loop to this vertex */
 
 #define SEM_NAME_MUTEX "12220853_sem_mutex"
