@@ -23,7 +23,7 @@
 typedef struct
 {
     bool print;      /*!< boolean value of the graph should be printed */
-    uint16_t limit;  /*!< number of generated solutions */
+    size_t limit;  /*!< number of generated solutions */
     uint16_t delayS; /*!< delay [s] before the starting to read the buffer */
 } options_t;
 
@@ -320,6 +320,12 @@ static error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t** pE
     {
         retCode |= circular_buffer_read(&pSharedMem->circbuf, pSems, &currEdge);
 
+        if (ERROR_SEMAPHORE == retCode)
+        {
+            return retCode;
+        }
+        
+
         debug("Read edge %d with %d-%d\n", iter, currEdge.start, currEdge.end);
 
         if (is_edge_delimiter(currEdge))
@@ -459,15 +465,14 @@ int main(int argc, char* argv[])
         debug("Sem Write: %d, Sem Read: %d, Mut: %d Sols: %d\n", semValWr, semValRd, semValMut, pSharedMem->flags.numSols);
 
         // check if there is something to read, and further if semaphores are successful
-        if (0 != sem_wait(semaphores.reading))
-        {
-            if ((errno == EINTR) && (gSigInt == true))
-            {
-                break;
-            }
-        }
+        retCode |= get_solution(pSharedMem, &semaphores, &currSol, &currSolSize);
 
-        get_solution(pSharedMem, &semaphores, &currSol, &currSolSize);
+        if (ERROR_OK != retCode)
+        {
+            debug("Error while reading: %d\n", retCode);
+            break;
+        }
+        
 
         debug("Best: %ld, Curr: %d\n", bestSolSize, currSolSize);
 
@@ -478,11 +483,10 @@ int main(int argc, char* argv[])
             bestSolSize = currSolSize;
         }
 
-        sem_post(semaphores.writing);
-
-        // no edges needed to be removed, so finish
+        // no edges needed to be removed, so finish because acyclic
         if (bestSolSize == 0U)
         {
+            debug("Read Sem: %d \n", semValRd);
             break;
         }
     }

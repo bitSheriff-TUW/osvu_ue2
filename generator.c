@@ -201,6 +201,12 @@ static error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* p
 
     if (sem_wait(pSems->mutex_write) < 0) return ERROR_SEMAPHORE;
 
+    int semValWr, semValRd, semValMut;
+    sem_getvalue(pSems->writing, &semValWr);
+    sem_getvalue(pSems->reading, &semValRd);
+    debug("Sem Write: %d, Sem Read: %d", semValWr, semValRd);
+      
+
     for (ssize_t i = 0U; i < edgeCnt; i++)
     {
         // only write edges that are not the delimiter, or default
@@ -209,6 +215,13 @@ static error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* p
             retCode |= circular_buffer_write(&pSharedMem->circbuf, pSems, &pEdges[i]);
             debug("Writing edge %d with %d-%d\n", i, pEdges[i].start, pEdges[i].end);
             *pWritten += 1U;
+
+            if (ERROR_OK != retCode)
+            {
+                debug("Error while writing\n", NULL);
+                return retCode;
+            }
+            
         }
     }
 
@@ -441,24 +454,43 @@ int main(int argc, char* argv[])
 
     while (pSharedMem->flags.genActive)
     {
-        debug("Next Solution\n", NULL);
+        debug_pid("Next Solution\n", NULL);
 
         // generate the solution
         retCode |= generate_solution(edges, solution, edgeCnt);
+        
+        debug_pid("Got Here", NULL);
 
         // write the edges to the shared memory
         retCode |= write_solution(pSharedMem, &semaphores, solution, edgeCnt, &solSize);
 
-        // signal that a solution was written, supervisor can read it now
-        sem_post(semaphores.reading);
+        debug_pid("Got Here", NULL);
+
+        if (ERROR_OK != retCode)
+        {
+            debug_pid("Breaked because of error %d", retCode);
+            break;
+        }
+
+        debug_pid("Got Here", NULL);
 
         // check if the solution is empty, this means termination
         if (0U == solSize)
         {
-            debug("Solution with 0 edges found, terminating now, supervise will terminate too\n", NULL);
+            debug_pid("Solution with 0 edges found, terminating now, supervise will terminate too\n", NULL);
             break;
         }
+        debug_pid("Got Here", NULL);
     }
+
+    debug_pid("While loop left", NULL);
+
+    if ((retCode & ERROR_SIGINT) != 0)
+    {
+        // just a signal received, so everything is fine
+        retCode = ERROR_OK;
+    }
+    
 
     // unmap memory
     munmap(pSharedMem, sizeof(shared_mem_t));
