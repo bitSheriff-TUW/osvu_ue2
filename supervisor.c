@@ -54,7 +54,7 @@ static void handle_opts(int argc, char** argv, options_t* pOpts)
 {
     int16_t ret = 0;
 
-    // init limit with max
+    // unlimited solutions per default
     pOpts->limit = 0U;
 
     while ((ret = getopt(argc, argv, "pn:w:")) != -1)
@@ -75,11 +75,11 @@ static void handle_opts(int argc, char** argv, options_t* pOpts)
             // Limit
             case 'n': {
                 // check if option was given more than once
-                if (UINT16_MAX != pOpts->limit)
+                if (0U != pOpts->limit)
                 {
                     usage("Option was given more than once\n");
                 }
-                pOpts->limit = (uint16_t)strtol(optarg, NULL, 0);
+                pOpts->limit = (size_t)strtol(optarg, NULL, 0);
                 break;
             }
 
@@ -364,7 +364,7 @@ int main(int argc, char* argv[])
 
     // main loop
     // SIZE_MAX is the indicator for unlimited solutions
-    while ((false == gSigInt) && ((pSharedMem->flags.numSols < opts.limit)) || (opts.limit == 0U))
+    while ((false == gSigInt) && ((pSharedMem->flags.numSols < opts.limit) || (opts.limit == 0U)))
     {
 
         // reset the memory
