@@ -294,6 +294,13 @@ error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems,  edge_t** pEdges, 
 
 void print_solution(edge_t* pEdges, size_t edgeCnt)
 {
+
+    // do not print if there are no edges
+    if(edgeCnt == 0U)
+    {
+        return;
+    }
+
     fprintf(stderr, "Solution with %zu edges:", edgeCnt);
     for (size_t i = 0; i < edgeCnt; i++)
     {
