@@ -44,7 +44,7 @@ static void readEdges(edge_t* pEdges[], char** argv, ssize_t argc)
         usage("Not enough parameter given");
     }
 
-    // step through all the given parameters and parse the endges
+    // step through all the given parameters and parse the edges
     for (ssize_t i = 1U; i < argc; i++)
     {
         // the vertices are separated with a dash, and the edges with a space
@@ -334,7 +334,7 @@ static void shuffle(int16_t pVert[], ssize_t edgeCnt)
  * @param   edgeCnt     Number of edges
  * @param   pVert       Pointer to the array of vertices
  */
-static void sortout_solution(edge_t pEdges[], ssize_t edgeCnt, int16_t* pVert)
+static void sortout_solution(edge_t pEdges[], size_t edgeCnt, int16_t* pVert)
 {
     edge_t* temp = calloc(sizeof(edge_t), edgeCnt);
     uint16_t idxV1 = 0U;
@@ -343,7 +343,9 @@ static void sortout_solution(edge_t pEdges[], ssize_t edgeCnt, int16_t* pVert)
 
     for (ssize_t i = 0U; i < edgeCnt; i++)
     {
-        edge_t currEdge = (pEdges)[i];
+        edge_t currEdge = pEdges[i];
+
+        debug("Edge: %d-%d\n", currEdge.start, currEdge.end);
 
         // search for the indexes of the vertices
         for (ssize_t j = 0U; j < edgeCnt * 2; j++)
@@ -351,21 +353,28 @@ static void sortout_solution(edge_t pEdges[], ssize_t edgeCnt, int16_t* pVert)
             if (pVert[j] == currEdge.start)
             {
                 idxV1 = j;
+                break;
             }
+        }
 
+        for (ssize_t j = 0U; j < edgeCnt * 2; j++)
+        {
             if (pVert[j] == currEdge.end)
             {
                 idxV2 = j;
+                break;
             }
         }
 
-        if (idxV1 < idxV2)
+        if (idxV1 > idxV2)
         {
             temp[tempIdx] = currEdge;
             tempIdx++;
+            debug("Added Edge to deletion: %d-%d\n", currEdge.start, currEdge.end);
         }
     }
 
+    memset(pEdges, 0, sizeof(edge_t) * edgeCnt);
     memcpy(pEdges, temp, sizeof(edge_t) * edgeCnt);
     free(temp);
 }

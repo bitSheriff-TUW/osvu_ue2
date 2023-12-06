@@ -458,10 +458,12 @@ int main(int argc, char* argv[])
         currSolSize = SIZE_MAX;
 
         // TODO: remove debug
+        #ifdef DEBUG
         int semValWr, semValRd, semValMut;
         sem_getvalue(semaphores.writing, &semValWr);
         sem_getvalue(semaphores.reading, &semValRd);
         sem_getvalue(semaphores.mutex_write, &semValMut);
+        #endif
         debug("Sem Write: %d, Sem Read: %d, Mut: %d Sols: %d\n", semValWr, semValRd, semValMut, pSharedMem->flags.numSols);
 
         // check if there is something to read, and further if semaphores are successful
