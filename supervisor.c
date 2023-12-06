@@ -38,7 +38,7 @@ static const char* gAppName; /*!< Name of the application */
  * @brief   Usage
  * @details This internal method is used to print the usage message and exit the application.
  * @param   msg     Message which will be printed
-*/
+ */
 static void usage(char* msg)
 {
     // print the usage message
@@ -46,7 +46,7 @@ static void usage(char* msg)
     emit_error(msg, ERROR_PARAM);
 }
 
-/*!
+/**
  * @brief   Handle Options
  *
  * @details This internal method is used to read the option given by the user.
@@ -111,6 +111,18 @@ static void handle_opts(int argc, char** argv, options_t* pOpts)
     }
 }
 
+/**
+ * @brief   Initialize Semaphores
+ * @details This internal method is used to initialize the semaphores.
+ *          If there are semaphores which were not closed properly (due to error), they will be unlinked first.
+ *          After that the semaphores will be created and stored in the given bundle.
+ *
+ * @param   pSems   Pointer to the semaphore bundle
+ *
+ * @return  error_t Error Code
+ * @retval  ERROR_OK            Everything was successful
+ * @retval  ERROR_SEMAPHORE     Something was wrong with opening the semaphores
+ */
 static error_t init_semaphores(sems_t* pSems)
 {
     error_t retCode = ERROR_OK;
@@ -121,11 +133,11 @@ static error_t init_semaphores(sems_t* pSems)
     sem_unlink(SEM_NAME_WRITE);
 
     // create the named semaphores
-    pSems->mutex_write = sem_open(SEM_NAME_MUTEX, O_CREAT, 0666, 1);
-    pSems->reading = sem_open(SEM_NAME_READ, O_CREAT, 0666, 0);
-    pSems->writing = sem_open(SEM_NAME_WRITE, O_CREAT, 0666, CIRBUF_BUFSIZE);
+    pSems->mutex_write = sem_open(SEM_NAME_MUTEX, O_CREAT, 0666, 1);           // 1 = available for one to write
+    pSems->reading = sem_open(SEM_NAME_READ, O_CREAT, 0666, 0);                // 0 = empty
+    pSems->writing = sem_open(SEM_NAME_WRITE, O_CREAT, 0666, CIRBUF_BUFSIZE);  // CIRBUF_BUFSIZE = full
 
-    // check if the opening was succesfull
+    // check if the opening was successful
     if ((SEM_FAILED == pSems->reading) || (SEM_FAILED == pSems->mutex_write) || (SEM_FAILED == pSems->writing))
     {
         debug("Semaphore Open error: %d\n", errno);
@@ -135,6 +147,17 @@ static error_t init_semaphores(sems_t* pSems)
     return retCode;
 }
 
+/**
+ * @brief   Cleanup Semaphores
+ * @details This internal method is used to cleanup the semaphores.
+ *          If closing the semaphores fails, then they will not get unlinked, to avoid getting errors.
+ *
+ * @param   pSems   Pointer to the semaphore bundle
+ *
+ * @return  error_t Error Code
+ * @retval  ERROR_OK            Everything was successful
+ * @retval  ERROR_SEMAPHORE     Something was wrong with closing the semaphores
+ */
 static error_t cleanup_semaphores(sems_t* pSems)
 {
     error_t retCode = ERROR_OK;
@@ -184,6 +207,13 @@ static error_t cleanup_semaphores(sems_t* pSems)
     return retCode;
 }
 
+/**
+ * @brief   Handle Signal Interrupt
+ * @details This internal method is used to handle the signal interrupt.
+ *          It will set the global variable to true, so the main loop will be exited.
+ *
+ * @param   sig     Signal which was received
+ */
 static void handle_sigint(int32_t sig)
 {
     // set the global variable to true
@@ -191,6 +221,22 @@ static void handle_sigint(int32_t sig)
     debug("SIGINT received\n", NULL);
 }
 
+/**
+ * @brief   Initialize Shared Memory
+ * @details This internal method is used to initialize the shared memory.
+ *          If there is already a shared memory, it will be unlinked first.
+ *          After that the shared memory will be created (file descriptor) and mapped to an address.
+ *          The opening as a file descriptor is allowed to fail once. Further the memory is truncated to the size of
+ *          the shared memory struct.
+ *          After that the memory is reset to 0 and the file descriptor is closed.
+ *
+ * @param   pSharedMem  Pointer to the shared memory
+ * @param   pFd         Pointer to the file descriptor
+ *
+ * @return  error_t Error Code
+ * @retval  ERROR_OK            Everything was successful
+ * @retval  ERROR_SHMEM         Something was wrong with the shared memory
+ */
 static error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
 {
     error_t retCode = ERROR_OK;
@@ -248,6 +294,21 @@ static error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
     return retCode;
 }
 
+/**
+ * @brief   Get Solution
+ * @details This internal method is used to get a solution from the shared memory.
+ *          It will read the edges from the shared memory until it finds the delimiter.
+ *          The edges will be stored in the given array.
+ *
+ * @param   pSharedMem  Pointer to the shared memory
+ * @param   pSems       Pointer to the semaphores
+ * @param   pEdges      Pointer to the array of edges
+ * @param   pEdgeCnt    Pointer to the number of edges
+ *
+ * @return  error_t Error Code
+ * @retval  ERROR_OK            Everything was successful
+ * @retval  ERROR_CIRBUF_EMPTY  The circular buffer is empty
+ */
 static error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t** pEdges, size_t* pEdgeCnt)
 {
     error_t retCode = ERROR_OK;
@@ -282,6 +343,16 @@ static error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t** pE
     return retCode;
 }
 
+/**
+ * @brief   Print Solution
+ * @details This internal method is used to print a solution.
+ *          It will print the edges of the given array.
+ *          If the solution is empty, nothing will be printed, because there is
+ *          a special message for that in the main function.
+ *
+ * @param   pEdges      Pointer to the array of edges
+ * @param   edgeCnt     Number of edges
+ */
 static void print_solution(edge_t* pEdges, size_t edgeCnt)
 {
     // do not print if there are no edges
@@ -298,6 +369,23 @@ static void print_solution(edge_t* pEdges, size_t edgeCnt)
     fprintf(stderr, "%s", "\n");
 }
 
+/**
+ * @brief   Main Function
+ * @details This is the main function of the supervisor.
+ *          The supervisor is responsible for reading the shared memory and determining the best solution.
+ *          It will read the edges from the shared memory until it finds the delimiter. These read edges form a "solution".
+ *          The supervisor will compare the size of the current solution with the best solution and store the smaller one.
+ *          If a solution with 0 edges is found, the graph is acyclic and therefore the program can terminate.
+ *
+ * @note    The supervisor will terminate if the optional limit is reached or if a signal interrupt is received.
+ *
+ * @param   argc    Argument Counter
+ * @param   argv    Argument Variables
+ *
+ * @return  int         Return Code
+ * @retval  ERROR_OK    Everything was successful
+ * @retval  else        Something was wrong
+ */
 int main(int argc, char* argv[])
 {
     error_t retCode = ERROR_OK; /*!< return code */
