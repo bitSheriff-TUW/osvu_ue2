@@ -4,18 +4,27 @@
  * @date 2023-10-18
  */
 
-#ifdef DEBUG
+#ifndef DEBUG_H_
+#define DEBUG_H_
 #include <stdio.h>
 
-/**
- * @brief       Debug Macro
-*/
-#define debug(fmt, ...) (void)fprintf(stderr, "[%s:%d@%s] " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
-#else
+    #ifdef DEBUG
 
-/**
- * @brief       Debug Macro (empty)
-*/
-#define debug(fmt, ...) /* NOP */
+    /** @brief Macro for debug pid output. */
+    #define debug_pid(fmt, ...) \
+    (void) fprintf(stderr, "[%s:%d@%s PID:%d] " fmt "\n", \
+    __FILE__,  __LINE__, __func__,  getpid(), ##__VA_ARGS__)
 
-#endif
+    /** @brief Macro for debug output. */
+    #define debug(fmt, ...) \
+    (void) fprintf(stderr, "[%s:%d@%s] " fmt "\n", \
+    __FILE__,  __LINE__, __func__, ##__VA_ARGS__)
+
+    #else
+
+    #define debug_pid(fmt, ...) /* NOP */
+    #define debug(fmt, ...) /* NOP */
+
+
+    #endif 
+#endif  // DEBUG_H_
