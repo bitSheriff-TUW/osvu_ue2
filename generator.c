@@ -201,12 +201,6 @@ static error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* p
 
     if (sem_wait(pSems->mutex_write) < 0) return ERROR_SEMAPHORE;
 
-    int semValWr, semValRd, semValMut;
-    sem_getvalue(pSems->writing, &semValWr);
-    sem_getvalue(pSems->reading, &semValRd);
-    debug("Sem Write: %d, Sem Read: %d", semValWr, semValRd);
-      
-
     for (ssize_t i = 0U; i < edgeCnt; i++)
     {
         // only write edges that are not the delimiter, or default
@@ -400,6 +394,7 @@ static error_t generate_solution(edge_t* pOrigEdges, edge_t* pSolution, ssize_t 
     // get the vertices
     int16_t* vert = get_vertices(pOrigEdges, edgeCnt);
 
+
     // shuffle the edges
     shuffle(vert, edgeCnt);
 
@@ -467,17 +462,12 @@ int main(int argc, char* argv[])
 
     while (pSharedMem->flags.genActive)
     {
-        debug_pid("Next Solution\n", NULL);
-
         // generate the solution
         retCode |= generate_solution(edges, solution, edgeCnt);
-        
-        debug_pid("Got Here", NULL);
 
         // write the edges to the shared memory
         retCode |= write_solution(pSharedMem, &semaphores, solution, edgeCnt, &solSize);
 
-        debug_pid("Got Here", NULL);
 
         if (ERROR_OK != retCode)
         {
@@ -485,18 +475,13 @@ int main(int argc, char* argv[])
             break;
         }
 
-        debug_pid("Got Here", NULL);
-
         // check if the solution is empty, this means termination
         if (0U == solSize)
         {
             debug_pid("Solution with 0 edges found, terminating now, supervise will terminate too\n", NULL);
             break;
         }
-        debug_pid("Got Here", NULL);
     }
-
-    debug_pid("While loop left", NULL);
 
     if ((retCode & ERROR_SIGINT) != 0)
     {
