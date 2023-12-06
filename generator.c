@@ -214,12 +214,16 @@ static error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* p
         {
             retCode |= circular_buffer_write(&pSharedMem->circbuf, pSems, &pEdges[i]);
             debug("Writing edge %d with %d-%d\n", i, pEdges[i].start, pEdges[i].end);
-            *pWritten += 1U;
 
             if (ERROR_OK != retCode)
             {
                 debug("Error while writing\n", NULL);
                 return retCode;
+            }
+            else
+            {
+                // actual size
+                *pWritten += 1U;
             }
             
         }
@@ -305,15 +309,15 @@ static uint16_t get_random_seed()
  * @param   pVert       Pointer to the array of vertices (read and write)
  * @param   edgeCnt     Number of edges
  */
-static void shuffle(int16_t** pVert, ssize_t edgeCnt)
+static void shuffle(int16_t pVert[], ssize_t edgeCnt)
 {
     // mix the vertices in the array
     for (ssize_t i = 0U; i < edgeCnt; i++)
     {
         ssize_t j = rand() % edgeCnt;
-        int16_t temp = (*pVert)[i];
-        (*pVert)[i] = (*pVert)[j];
-        (*pVert)[j] = temp;
+        int16_t temp = (pVert)[i];
+        (pVert)[i] = (pVert)[j];
+        (pVert)[j] = temp;
     }
 }
 
@@ -330,7 +334,7 @@ static void shuffle(int16_t** pVert, ssize_t edgeCnt)
  * @param   edgeCnt     Number of edges
  * @param   pVert       Pointer to the array of vertices
  */
-static void sortout_solution(edge_t** pEdges, ssize_t edgeCnt, int16_t* pVert)
+static void sortout_solution(edge_t pEdges[], ssize_t edgeCnt, int16_t* pVert)
 {
     edge_t* temp = calloc(sizeof(edge_t), edgeCnt);
     uint16_t idxV1 = 0U;
@@ -339,7 +343,7 @@ static void sortout_solution(edge_t** pEdges, ssize_t edgeCnt, int16_t* pVert)
 
     for (ssize_t i = 0U; i < edgeCnt; i++)
     {
-        edge_t currEdge = (*pEdges)[i];
+        edge_t currEdge = (pEdges)[i];
 
         // search for the indexes of the vertices
         for (ssize_t j = 0U; j < edgeCnt * 2; j++)
@@ -362,7 +366,7 @@ static void sortout_solution(edge_t** pEdges, ssize_t edgeCnt, int16_t* pVert)
         }
     }
 
-    memcpy(*pEdges, temp, sizeof(edge_t) * edgeCnt);
+    memcpy(pEdges, temp, sizeof(edge_t) * edgeCnt);
     free(temp);
 }
 
@@ -388,10 +392,10 @@ static error_t generate_solution(edge_t* pOrigEdges, edge_t* pSolution, ssize_t 
     int16_t* vert = get_vertices(pOrigEdges, edgeCnt);
 
     // shuffle the edges
-    shuffle(&vert, edgeCnt);
+    shuffle(vert, edgeCnt);
 
     // remove the edges which have a smaller index for the start vertex than the end vertex
-    sortout_solution(&pSolution, edgeCnt, vert);
+    sortout_solution(pSolution, edgeCnt, vert);
 
     free(vert);
 

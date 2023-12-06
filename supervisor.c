@@ -57,7 +57,7 @@ static void usage(char* msg)
  * @param   argv    Argument Variables
  * @param   pOpts   Pointer to the option bundle
  **/
-static void handle_opts(int argc, char** argv, options_t* pOpts)
+static void handle_opts(int argc, char* argv[], options_t* pOpts)
 {
     int16_t ret = 0;
 
@@ -309,7 +309,7 @@ static error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
  * @retval  ERROR_OK            Everything was successful
  * @retval  ERROR_CIRBUF_EMPTY  The circular buffer is empty
  */
-static error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t** pEdges, size_t* pEdgeCnt)
+static error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* pEdges[], size_t* pEdgeCnt)
 {
     error_t retCode = ERROR_OK;
     edge_t currEdge = {0U};
@@ -408,8 +408,8 @@ int main(int argc, char* argv[])
     gAppName = argv[0];
 
     // allocate the memory for the solutions
-    bestSol = malloc(sizeof(edge_t) * BEST_SOL_MAX_EDGES);
-    currSol = malloc(sizeof(edge_t) * BEST_SOL_MAX_EDGES);
+    bestSol = calloc(sizeof(edge_t), BEST_SOL_MAX_EDGES);
+    currSol = calloc(sizeof(edge_t), BEST_SOL_MAX_EDGES);
 
     if ((bestSol == NULL) || (currSol == NULL))
     {
