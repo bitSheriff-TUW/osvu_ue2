@@ -85,7 +85,6 @@ error_t cleanup_semaphores(sems_t* pSems)
     return retCode;
 }
 
-
 error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
 {
     error_t retCode = ERROR_OK;
@@ -103,7 +102,7 @@ error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
     debug("Shared fd: %d\n", *pFd);
 
     // map the shared memory
-    *pSharedMem = (shared_mem_t*) mmap(NULL, sizeof(shared_mem_t), PROT_READ | PROT_WRITE, MAP_SHARED, *pFd, 0);
+    *pSharedMem = (shared_mem_t*)mmap(NULL, sizeof(shared_mem_t), PROT_READ | PROT_WRITE, MAP_SHARED, *pFd, 0);
     debug("Shared mem: %p\n", *pSharedMem);
 
     // check if the mapping was successful
@@ -122,12 +121,12 @@ error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
 error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* pEdges, ssize_t edgeCnt, size_t* pWritten)
 {
     error_t retCode = ERROR_OK;
-    edge_t del = { DELIMITER_VERTEX, DELIMITER_VERTEX};
+    edge_t del = {DELIMITER_VERTEX, DELIMITER_VERTEX};
     *pWritten = 0U;
 
     if (sem_wait(pSems->mutex_write) < 0) return ERROR_SEMAPHORE;
 
-    for(ssize_t i = 0U; i < edgeCnt; i++)
+    for (ssize_t i = 0U; i < edgeCnt; i++)
     {
         // only write edges that are not the delimiter, or default
         if (pEdges[i].start != 0U)
@@ -170,12 +169,12 @@ int16_t* get_vertices(edge_t* pEdges, ssize_t edgeCnt)
 
         if (!isIncl[currEdge.end])
         {
-            vert[i + edgeCnt/2] = currEdge.end;
+            vert[i + edgeCnt / 2] = currEdge.end;
             isIncl[currEdge.end] = true;
             debug("Vert: %d\n", currEdge.end);
         }
     }
-    
+
     free(isIncl);
     return vert;
 }
@@ -213,7 +212,6 @@ void shuffle(int16_t** pVert, ssize_t edgeCnt)
 
 void sortout_solution(edge_t** pEdges, ssize_t edgeCnt, int16_t* pVert)
 {
-
     edge_t* temp = calloc(sizeof(edge_t), edgeCnt);
     uint16_t idxV1 = 0U;
     uint16_t idxV2 = 0U;
@@ -224,7 +222,7 @@ void sortout_solution(edge_t** pEdges, ssize_t edgeCnt, int16_t* pVert)
         edge_t currEdge = (*pEdges)[i];
 
         // search for the indexes of the vertices
-        for (ssize_t j = 0U; j < edgeCnt*2; j++)
+        for (ssize_t j = 0U; j < edgeCnt * 2; j++)
         {
             if (pVert[j] == currEdge.start)
             {
@@ -248,8 +246,7 @@ void sortout_solution(edge_t** pEdges, ssize_t edgeCnt, int16_t* pVert)
     free(temp);
 }
 
-
-error_t generate_solution(edge_t* pOrigEdges, edge_t*pSolution, ssize_t edgeCnt)
+error_t generate_solution(edge_t* pOrigEdges, edge_t* pSolution, ssize_t edgeCnt)
 {
     error_t retCode = ERROR_OK;
 
@@ -268,16 +265,14 @@ error_t generate_solution(edge_t* pOrigEdges, edge_t*pSolution, ssize_t edgeCnt)
     return retCode;
 }
 
-
-
 int main(int argc, char* argv[])
 {
     debug("This is the generator\n", NULL);
-    error_t retCode = ERROR_OK;                      /*!< return code for error handling */
-    ssize_t edgeCnt = argc - 1U;                     /*!< number of given edges */
-    edge_t* edges = malloc(sizeof(edge_t) * edgeCnt); /*!< memory to store all edges */
+    error_t retCode = ERROR_OK;                          /*!< return code for error handling */
+    ssize_t edgeCnt = argc - 1U;                         /*!< number of given edges */
+    edge_t* edges = malloc(sizeof(edge_t) * edgeCnt);    /*!< memory to store all edges */
     edge_t* solution = malloc(sizeof(edge_t) * edgeCnt); /*!< memory to store a solution */
-    sems_t semaphores = {0U};                        /*!< struct of all needed semaphores */
+    sems_t semaphores = {0U};                            /*!< struct of all needed semaphores */
     shared_mem_t* pSharedMem = NULL;
     int16_t fd = -1;
     size_t solSize = 0U;
@@ -306,7 +301,6 @@ int main(int argc, char* argv[])
         emit_error("Something was wrong with the shared memory\n", retCode);
     }
 
-
     while (pSharedMem->flags.genActive)
     {
         // TODO: remove debugs
@@ -322,7 +316,7 @@ int main(int argc, char* argv[])
         // write the edges to the shared memory
         retCode |= write_solution(pSharedMem, &semaphores, solution, edgeCnt, &solSize);
 
-        if(0U == solSize)
+        if (0U == solSize)
         {
             debug("Solution with 0 edges found, terminating now, supervise will terminate too\n", NULL);
             sem_post(semaphores.reading);
@@ -331,7 +325,6 @@ int main(int argc, char* argv[])
 
         sem_post(semaphores.reading);
     }
-
 
     // unmap memory
     munmap(pSharedMem, sizeof(shared_mem_t));

@@ -138,8 +138,7 @@ error_t cleanup_semaphores(sems_t* pSems)
     {
         debug("Semaphore Close error: Buffer Full\n", NULL);
         retCode |= ERROR_SEMAPHORE;
-    }
-    else
+    } else
     {
         // unlink the semaphore
         if (sem_unlink(SEM_NAME_WRITE) == -1)
@@ -153,8 +152,7 @@ error_t cleanup_semaphores(sems_t* pSems)
     {
         debug("Semaphore Close error: Buffer Empty\n", NULL);
         retCode |= ERROR_SEMAPHORE;
-    }
-    else
+    } else
     {
         // unlink the semaphore
         if (sem_unlink(SEM_NAME_READ) == -1)
@@ -168,8 +166,7 @@ error_t cleanup_semaphores(sems_t* pSems)
     {
         debug("Semaphore Close error: Mutex\n", NULL);
         retCode |= ERROR_SEMAPHORE;
-    }
-    else
+    } else
     {
         // unlink the semaphore
         if (sem_unlink(SEM_NAME_MUTEX) == -1)
@@ -213,24 +210,23 @@ error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
         if (*pFd < 0)
         {
             debug("Opening failed again, exit %d\n", errno);
-          return retCode;
-        }
-        else
+            return retCode;
+        } else
         {
             // everything was successful (on the second try)
             retCode = ERROR_OK;
         }
     }
 
-    if(ftruncate(*pFd, sizeof(shared_mem_t)) < 0)
-	{
+    if (ftruncate(*pFd, sizeof(shared_mem_t)) < 0)
+    {
         debug("ftruncate failed\n", NULL);
         retCode = ERROR_SHMEM;
         return retCode;
-	}
+    }
 
     // map the shared memory
-    *pSharedMem = (shared_mem_t*) mmap(NULL, sizeof(shared_mem_t), PROT_READ | PROT_WRITE, MAP_SHARED, *pFd, 0);
+    *pSharedMem = (shared_mem_t*)mmap(NULL, sizeof(shared_mem_t), PROT_READ | PROT_WRITE, MAP_SHARED, *pFd, 0);
 
     // check if the mapping was successful
     if (MAP_FAILED == *pSharedMem)
@@ -250,7 +246,7 @@ error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
 size_t size_of_graph(edge_t* pEds)
 {
     size_t size = 0U;
-    while ( (is_edge_delimiter(pEds[size])) && (size < BEST_SOL_MAX_EDGES))
+    while ((is_edge_delimiter(pEds[size])) && (size < BEST_SOL_MAX_EDGES))
     {
         size++;
     }
@@ -258,14 +254,14 @@ size_t size_of_graph(edge_t* pEds)
     return size;
 }
 
-error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems,  edge_t** pEdges, size_t* pEdgeCnt)
+error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t** pEdges, size_t* pEdgeCnt)
 {
     error_t retCode = ERROR_OK;
     edge_t currEdge = {0U};
     size_t iter = 0;
-    *pEdgeCnt = SIZE_MAX; // set max value, due to interrupt
+    *pEdgeCnt = SIZE_MAX;  // set max value, due to interrupt
 
-    while(true)
+    while (true)
     {
         retCode |= circular_buffer_read(&pSharedMem->circbuf, pSems, &currEdge);
 
@@ -275,14 +271,12 @@ error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems,  edge_t** pEdges, 
         {
             break;
         }
-       
 
-        if(retCode != ERROR_OK)
+        if (retCode != ERROR_OK)
         {
             debug("Error while reading\n", NULL);
             return retCode;
-        }
-        else
+        } else
         {
             memcpy(&(*pEdges)[iter], &currEdge, sizeof(edge_t));
             iter++;
@@ -290,15 +284,14 @@ error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems,  edge_t** pEdges, 
     }
 
     *pEdgeCnt = iter;
-    
+
     return retCode;
 }
 
 void print_solution(edge_t* pEdges, size_t edgeCnt)
 {
-
     // do not print if there are no edges
-    if(edgeCnt == 0U)
+    if (edgeCnt == 0U)
     {
         return;
     }
@@ -317,11 +310,11 @@ int main(int argc, char* argv[])
     options_t opts = {0U};      /*!< bundle of options */
     sems_t semaphores = {0};
     shared_mem_t* pSharedMem = NULL;
-    edge_t* bestSol = {0U}; /* best found solution */
-    edge_t* currSol = {0U}; /* current solution */
-    size_t bestSolSize = SIZE_MAX;                   /* size of the best solution */
-    size_t currSolSize = SIZE_MAX;                   /* size of the current solution */
-    int16_t fd = -1;                           /* file descriptor of the shared memory */
+    edge_t* bestSol = {0U};        /* best found solution */
+    edge_t* currSol = {0U};        /* current solution */
+    size_t bestSolSize = SIZE_MAX; /* size of the best solution */
+    size_t currSolSize = SIZE_MAX; /* size of the current solution */
+    int16_t fd = -1;               /* file descriptor of the shared memory */
 
     // set the application name
     gAppName = argv[0];
@@ -334,12 +327,9 @@ int main(int argc, char* argv[])
     {
         emit_error("Something was wrong with allocating memory\n", retCode);
     }
-    
 
     // register the signal handler
-    struct sigaction sa = { 
-    .sa_handler = handle_sigint 
-    };
+    struct sigaction sa = {.sa_handler = handle_sigint};
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGTERM, &sa, NULL);
 
@@ -367,7 +357,7 @@ int main(int argc, char* argv[])
         sleep(opts.delayS);
         debug("Delay done\n", NULL);
     }
-    
+
     // main operating loop
     debug("Starting main loop\n", NULL);
 
@@ -375,7 +365,6 @@ int main(int argc, char* argv[])
     // SIZE_MAX is the indicator for unlimited solutions
     while ((false == gSigInt) && ((pSharedMem->flags.numSols < opts.limit) || (opts.limit == 0U)))
     {
-
         // reset the memory
         memset(currSol, 0, sizeof(edge_t) * BEST_SOL_MAX_EDGES);
         currSolSize = SIZE_MAX;
@@ -388,9 +377,9 @@ int main(int argc, char* argv[])
         debug("Sem Write: %d, Sem Read: %d, Mut: %d Sols: %d\n", semValWr, semValRd, semValMut, pSharedMem->flags.numSols);
 
         // check if there is something to read, and further if semaphores are successful
-        if( 0 != sem_wait(semaphores.reading))
+        if (0 != sem_wait(semaphores.reading))
         {
-            if((errno == EINTR) && (gSigInt == true))
+            if ((errno == EINTR) && (gSigInt == true))
             {
                 break;
             }
@@ -400,7 +389,7 @@ int main(int argc, char* argv[])
 
         debug("Best: %ld, Curr: %d\n", bestSolSize, currSolSize);
 
-        if(currSolSize < bestSolSize)
+        if (currSolSize < bestSolSize)
         {
             print_solution(currSol, currSolSize);
             memcpy(bestSol, currSol, sizeof(edge_t) * currSolSize);
@@ -412,7 +401,7 @@ int main(int argc, char* argv[])
         {
             break;
         }
-        
+
         sem_post(semaphores.writing);
     }
 
@@ -439,19 +428,17 @@ int main(int argc, char* argv[])
     currSol = NULL;
 
     // unmap memory
-    if( munmap(pSharedMem, sizeof(shared_mem_t)) == 0)
+    if (munmap(pSharedMem, sizeof(shared_mem_t)) == 0)
     {
         debug("Unmapping successful\n", NULL);
-        if ( 0U != shm_unlink(SHAREDMEM_FILE))
+        if (0U != shm_unlink(SHAREDMEM_FILE))
         {
             debug("Unlinking failed errno: %d\n", errno);
-        }
-        else
+        } else
         {
             debug("Unlinking successful\n", NULL);
         }
-    }
-    else
+    } else
     {
         debug("Unmapping failed\n", NULL);
     }
@@ -462,7 +449,6 @@ int main(int argc, char* argv[])
     {
         emit_error("Something was wrong with the cleaning semaphores\n", retCode);
     }
-   
 
     return retCode;
 }

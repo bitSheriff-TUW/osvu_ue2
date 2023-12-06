@@ -11,30 +11,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
-#include "errors.h"
 #include "debug.h"
+#include "errors.h"
 
 /* **** SHARED MEMORY **** */
+#include <errno.h>
 #include <fcntl.h> /* For O_* constants */
+#include <fcntl.h>
 #include <semaphore.h>
 #include <stdint.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h> /* For mode constants */
-#include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
 
 #define SHAREDMEM_FILE "12220853_sharedMem" /*!< Name of the shared memory file */
-#define CIRBUF_BUFSIZE 64                    // TODO: better size
-#define DELIMITER_VERTEX 0          /*!< Vertex for the delimiter, delimiter edge is defined by a loop to this vertex */
+#define CIRBUF_BUFSIZE 256U                 // TODO: better size
+#define DELIMITER_VERTEX 0                  /*!< Vertex for the delimiter, delimiter edge is defined by a loop to this vertex */
 
 #define SEM_NAME_MUTEX "12220853_sem_mutex"
 #define SEM_NAME_READ "12220853_sem_read"
 #define SEM_NAME_WRITE "12220853_sem_write"
 
-# define BEST_SOL_MAX_EDGES 256U /*!< Maximum number of edges for the best solution */
+#define BEST_SOL_MAX_EDGES 16U /*!< Maximum number of edges for the best solution */
 
 /*!
  * @struct edge_t
@@ -56,7 +55,7 @@ typedef struct
  **/
 typedef struct
 {
-    bool genActive; /*!< Flag that the generators should be active */
+    bool genActive;  /*!< Flag that the generators should be active */
     ssize_t numSols; /*!< Number of solutions found */
 } shared_mem_flags_t;
 
@@ -75,7 +74,6 @@ typedef struct
 
 } shared_mem_t;
 
-
 /*!
  * @struct sems_t
  * @brief  Structure of needed semaphores
@@ -85,9 +83,9 @@ typedef struct
  **/
 typedef struct
 {
-    sem_t* mutex_write;  /*!< Mutex for the generator (writing to circular buffer) */
-    sem_t* writing; /*!< semaphore to handle emptiness */
-    sem_t* reading;  /*!< semaphore to handle fullness */
+    sem_t* mutex_write; /*!< Mutex for the generator (writing to circular buffer) */
+    sem_t* writing;     /*!< semaphore to handle emptiness */
+    sem_t* reading;     /*!< semaphore to handle fullness */
 } sems_t;
 
 /* **** FUNCTIONS **** */
