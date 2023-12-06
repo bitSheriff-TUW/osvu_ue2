@@ -493,6 +493,13 @@ int main(int argc, char* argv[])
         }
     }
 
+    if ( ((retCode & ERROR_SIGINT) != 0) || ((retCode & ERROR_SEMAPHORE) != 0 ))
+    {
+        // just a signal received, so everything is fine
+        retCode = ERROR_OK;
+    }
+    
+
     pSharedMem->flags.genActive = false;
 
     // print the best solution
