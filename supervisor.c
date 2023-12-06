@@ -478,13 +478,13 @@ int main(int argc, char* argv[])
             bestSolSize = currSolSize;
         }
 
+        sem_post(semaphores.writing);
+
         // no edges needed to be removed, so finish
         if (bestSolSize == 0U)
         {
             break;
         }
-
-        sem_post(semaphores.writing);
     }
 
     pSharedMem->flags.genActive = false;
