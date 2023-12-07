@@ -348,12 +348,18 @@ static void sortout_solution(edge_t pEdges[], size_t edgeCnt, int16_t* pVert)
                 break;
             }
 
-            if (pVert[j] == currEdge.end)
+
+        }
+
+        for (size_t j = 0; j < edgeCnt * 2; j++)
+        {
+           if (pVert[j] == currEdge.end)
             {
                 idxV2 = j;
                 break;
             }
         }
+        
 
         if (idxV1 > idxV2)
         {
@@ -374,28 +380,23 @@ static void sortout_solution(edge_t pEdges[], size_t edgeCnt, int16_t* pVert)
  * @param   pOrigEdges  Pointer to the array of edges (read only)
  * @param   pSolution   Pointer to the array of edges (read and write)
  * @param   edgeCnt     Number of edges
+ * @param   pVert       Pointer to the array of vertices
  *
  * @return  retCode     Error code
  * @retval  ERROR_OK            Everything went fine
  */
-static error_t generate_solution(edge_t* pOrigEdges, edge_t* pSolution, size_t edgeCnt)
+static error_t generate_solution(edge_t* pOrigEdges, edge_t* pSolution, size_t edgeCnt, int16_t* pVert)
 {
     error_t retCode = ERROR_OK; /*!< return code for error handling */
 
     // reset the solution
     memcpy(pSolution, pOrigEdges, sizeof(edge_t) * edgeCnt);
 
-    // get the vertices
-    int16_t* vert = get_vertices(pOrigEdges, edgeCnt);
-
-
     // shuffle the edges
-    shuffle(vert, edgeCnt);
+    shuffle(pVert, edgeCnt);
 
     // remove the edges which have a smaller index for the start vertex than the end vertex
-    sortout_solution(pSolution, edgeCnt, vert);
-
-    free(vert);
+    sortout_solution(pSolution, edgeCnt, pVert);
 
     return retCode;
 }
@@ -452,10 +453,13 @@ int main(int argc, char* argv[])
     // set the seed for the random number generator
     srand(get_random_seed());
 
+    // get the vertices
+    int16_t* pVert = get_vertices(edges, edgeCnt);
+
     while (pSharedMem->flags.genActive)
     {
         // generate the solution
-        retCode |= generate_solution(edges, solution, edgeCnt);
+        retCode |= generate_solution(edges, solution, edgeCnt, pVert);
 
         // write the edges to the shared memory
         retCode |= write_solution(pSharedMem, &semaphores, solution, edgeCnt, &solSize);
@@ -492,6 +496,7 @@ int main(int argc, char* argv[])
     // unmap memory
     munmap(pSharedMem, sizeof(shared_mem_t));
     cleanup_semaphores(&semaphores);
+    free(pVert);
     free(edges);
     free(solution);
 
