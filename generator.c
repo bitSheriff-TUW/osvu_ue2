@@ -345,22 +345,15 @@ static void sortout_solution(edge_t pEdges[], size_t edgeCnt, int16_t* pVert)
             if (pVert[j] == currEdge.start)
             {
                 idxV1 = j;
-                break;
             }
 
-
-        }
-
-        for (size_t j = 0; j < edgeCnt * 2; j++)
-        {
-           if (pVert[j] == currEdge.end)
+            if (pVert[j] == currEdge.end)
             {
                 idxV2 = j;
-                break;
             }
         }
-        
 
+        // check if this sge should be added to the solution (deletion set)
         if (idxV1 > idxV2)
         {
             temp[tempIdx] = currEdge;
