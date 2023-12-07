@@ -492,7 +492,6 @@ int main(int argc, char* argv[])
         // no edges needed to be removed, so finish because acyclic
         if (bestSolSize == 0U)
         {
-            debug("Read Sem: %d \n", semValRd);
             break;
         }
     }
