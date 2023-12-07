@@ -58,7 +58,6 @@ static void readEdges(edge_t* pEdges[], char** argv, ssize_t argc)
         {
             emit_error("Loops are not allowed\n", ERROR_PARAM);
         }
-        debug("got Edge: %hu-%hu\n", (*pEdges)[i - 1].start, (*pEdges)[i - 1].end);
     }
 }
 
@@ -157,11 +156,9 @@ static error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
         debug("Opening failed %d\n", errno);
         return retCode;
     }
-    debug("Shared fd: %d\n", *pFd);
 
     // map the shared memory
     *pSharedMem = (shared_mem_t*)mmap(NULL, sizeof(shared_mem_t), PROT_READ | PROT_WRITE, MAP_SHARED, *pFd, 0);
-    debug("Shared mem: %p\n", *pSharedMem);
 
     // check if the mapping was successful
     if (MAP_FAILED == *pSharedMem)
@@ -207,7 +204,6 @@ static error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* p
         if (!is_edge_delimiter(pEdges[i]))
         {
             retCode |= circular_buffer_write(&pSharedMem->circbuf, pSems, &pEdges[i]);
-            debug("Writing edge %d with %d-%d\n", i, pEdges[i].start, pEdges[i].end);
 
             if (ERROR_OK != retCode)
             {
@@ -343,8 +339,6 @@ static void sortout_solution(edge_t pEdges[], size_t edgeCnt, int16_t* pVert)
     {
         edge_t currEdge = pEdges[i];
 
-        debug("Edge: %d-%d\n", currEdge.start, currEdge.end);
-
         // search for the indexes of the vertices
         for (ssize_t j = 0U; j < edgeCnt * 2; j++)
         {
@@ -365,7 +359,6 @@ static void sortout_solution(edge_t pEdges[], size_t edgeCnt, int16_t* pVert)
         {
             temp[tempIdx] = currEdge;
             tempIdx++;
-            debug("Added Edge to deletion: %d-%d\n", currEdge.start, currEdge.end);
         }
     }
 
@@ -437,8 +430,6 @@ int main(int argc, char* argv[])
     // set the application name
     gAppName = argv[0];
 
-    debug("Number of Edges: %ld\n", edgeCnt);
-
     // read the edges from the parameters
     readEdges(&edges, argv, argc);
 
@@ -472,7 +463,7 @@ int main(int argc, char* argv[])
 
         if (ERROR_OK != retCode)
         {
-            debug_pid("Breaked because of error %d", retCode);
+            debug_pid("Exited because of error %d", retCode);
             break;
         }
 

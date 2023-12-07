@@ -338,9 +338,6 @@ static error_t get_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* pEd
             return retCode;
         }
         
-
-        debug("Read edge %d with %d-%d\n", iter, currEdge.start, currEdge.end);
-
         if (is_edge_delimiter(currEdge))
         {
             break;
@@ -479,9 +476,6 @@ int main(int argc, char* argv[])
             break;
         }
         
-
-        debug("Best: %ld, Curr: %d\n", bestSolSize, currSolSize);
-
         if (currSolSize < bestSolSize)
         {
             print_solution(currSol, currSolSize);
