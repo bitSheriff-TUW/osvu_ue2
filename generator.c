@@ -353,10 +353,7 @@ static void sortout_solution(edge_t pEdges[], size_t edgeCnt, int16_t* pVert)
                 idxV1 = j;
                 break;
             }
-        }
 
-        for (ssize_t j = 0U; j < edgeCnt * 2; j++)
-        {
             if (pVert[j] == currEdge.end)
             {
                 idxV2 = j;
