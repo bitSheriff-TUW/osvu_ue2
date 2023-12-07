@@ -388,7 +388,7 @@ static void sortout_solution(edge_t pEdges[], size_t edgeCnt, int16_t* pVert)
  * @return  retCode     Error code
  * @retval  ERROR_OK            Everything went fine
  */
-static error_t generate_solution(edge_t* pOrigEdges, edge_t* pSolution, ssize_t edgeCnt)
+static error_t generate_solution(edge_t* pOrigEdges, edge_t* pSolution, size_t edgeCnt)
 {
     error_t retCode = ERROR_OK; /*!< return code for error handling */
 

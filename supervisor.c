@@ -160,7 +160,7 @@ static error_t init_semaphores(sems_t* pSems)
  */
 static error_t cleanup_semaphores(sems_t* pSems)
 {
-    error_t retCode = ERROR_OK;
+    error_t retCode = ERROR_OK;         /*!< return code */
 
     if (sem_close(pSems->writing) == -1)
     {
@@ -258,7 +258,7 @@ static error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
     shm_unlink(SHAREDMEM_FILE);
 
     // open the shared memory
-    *pFd = shm_open(SHAREDMEM_FILE, O_RDWR | O_CREAT | O_EXCL, 0600);
+    *pFd = shm_open(SHAREDMEM_FILE, O_RDWR | O_CREAT, 0600);
 
     // check if the opening was successful
     if (*pFd < 0)
@@ -269,7 +269,7 @@ static error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
         debug("Already exists, try to unlink\n", NULL);
         shm_unlink(SHAREDMEM_FILE);
 
-        *pFd = shm_open(SHAREDMEM_FILE, O_RDWR | O_CREAT | O_EXCL, 0600);
+        *pFd = shm_open(SHAREDMEM_FILE, O_RDWR | O_CREAT, 0600);
 
         if (*pFd < 0)
         {
@@ -470,15 +470,6 @@ int main(int argc, char* argv[])
         memset(currSol, 0, sizeof(edge_t) * BEST_SOL_MAX_EDGES);
         currSolSize = SIZE_MAX;
 
-        // TODO: remove debug
-        #ifdef DEBUG
-        int semValWr, semValRd, semValMut;
-        sem_getvalue(semaphores.writing, &semValWr);
-        sem_getvalue(semaphores.reading, &semValRd);
-        sem_getvalue(semaphores.mutex_write, &semValMut);
-        #endif
-        debug("Sem Write: %d, Sem Read: %d, Mut: %d Sols: %d\n", semValWr, semValRd, semValMut, pSharedMem->flags.numSols);
-
         // check if there is something to read, and further if semaphores are successful
         retCode |= get_solution(pSharedMem, &semaphores, &currSol, &currSolSize);
 
@@ -553,10 +544,8 @@ int main(int argc, char* argv[])
 
     retCode |= cleanup_semaphores(&semaphores);
 
-    if (0 != retCode)
-    {
-        emit_error("Something was wrong with the cleaning semaphores\n", retCode);
-    }
+    // all error should be handled before
+    retCode = ERROR_OK;
 
     return retCode;
 }
