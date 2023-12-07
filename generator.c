@@ -484,9 +484,16 @@ int main(int argc, char* argv[])
         }
     }
 
+    if (false == pSharedMem->flags.genActive)
+    {
+        debug_pid("Terminating because of flag\n", NULL);
+    }
+    
+
     if ((retCode & ERROR_SIGINT) != 0)
     {
         // just a signal received, so everything is fine
+        debug_pid("Terminated by signal\n", NULL);
         retCode = ERROR_OK;
     }
     
