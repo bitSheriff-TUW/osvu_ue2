@@ -237,10 +237,11 @@ static error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* p
  *
  * @param   pEdges      Pointer to the array of edges
  * @param   edgeCnt     Number of edges
+ * @param   pVertCnt    Pointer to the number of vertices
  *
  * @return  vert        Pointer to the array of vertices
  */
-static int16_t* get_vertices(edge_t* pEdges, size_t edgeCnt)
+static int16_t* get_vertices(edge_t* pEdges, size_t edgeCnt, size_t* pVertCnt)
 {
     int16_t* vert = malloc(sizeof(int16_t) * edgeCnt * 2);
     memset(vert, -1, sizeof(int16_t) * edgeCnt * 2);
@@ -269,30 +270,22 @@ static int16_t* get_vertices(edge_t* pEdges, size_t edgeCnt)
         }
     }
 
+    // set the number of vertices
+    *pVertCnt = vertCnt;
+
     free(isIncl);
     return vert;
 }
 
 /**
  * @brief   Get Random Seed
- * @details This internal method is used to get a random seed from /dev/urandom.
+ * @details This internal method is used to get a random seed from the pid
  *
  * @return  seed        Random seed
  */
 static uint16_t get_random_seed()
 {
-    uint16_t seed = 0U;                    /*!< random seed */
-    FILE* fp = fopen("/dev/urandom", "r"); /*!< file pointer to /dev/urandom */
-
-    if (NULL == fp)
-    {
-        emit_error("Could not open /dev/urandom\n", ERROR_PARAM);
-    }
-
-    fread(&seed, sizeof(uint16_t), 1U, fp);
-    fclose(fp);
-
-    return seed;
+    return getpid();
 }
 
 /**
@@ -301,14 +294,14 @@ static uint16_t get_random_seed()
  *          It reads the edges and writes them to the same array, but in a random order.
  *
  * @param   pVert       Pointer to the array of vertices (read and write)
- * @param   edgeCnt     Number of edges
+ * @param   vertCnt     Number of vertices
  */
-static void shuffle(int16_t pVert[], size_t edgeCnt)
+static void shuffle(int16_t pVert[], size_t vertCnt)
 {
     // mix the vertices in the array
-    for (size_t i = 0U; i < edgeCnt; i++)
+    for (size_t i = 0U; i < vertCnt; i++)
     {
-        size_t j = rand() % edgeCnt;
+        size_t j = rand() % vertCnt;
         int16_t temp = (pVert)[i];
         (pVert)[i] = (pVert)[j];
         (pVert)[j] = temp;
@@ -328,7 +321,7 @@ static void shuffle(int16_t pVert[], size_t edgeCnt)
  * @param   edgeCnt     Number of edges
  * @param   pVert       Pointer to the array of vertices
  */
-static void sortout_solution(edge_t pEdges[], size_t edgeCnt, int16_t* pVert)
+static void sortout_solution(edge_t pEdges[], size_t edgeCnt, int16_t* pVert, size_t vertCnt)
 {
     edge_t* temp = calloc(sizeof(edge_t), edgeCnt);
     uint16_t idxV1 = 0U;
@@ -340,7 +333,7 @@ static void sortout_solution(edge_t pEdges[], size_t edgeCnt, int16_t* pVert)
         edge_t currEdge = pEdges[i];
 
         // search for the indexes of the vertices
-        for (size_t j = 0U; j < edgeCnt * 2; j++)
+        for (size_t j = 0U; j < vertCnt; j++)
         {
             if (pVert[j] == currEdge.start)
             {
@@ -374,11 +367,12 @@ static void sortout_solution(edge_t pEdges[], size_t edgeCnt, int16_t* pVert)
  * @param   pSolution   Pointer to the array of edges (read and write)
  * @param   edgeCnt     Number of edges
  * @param   pVert       Pointer to the array of vertices
+ * @param   vertCnt     Number of vertices
  *
  * @return  retCode     Error code
  * @retval  ERROR_OK            Everything went fine
  */
-static error_t generate_solution(edge_t* pOrigEdges, edge_t* pSolution, size_t edgeCnt, int16_t* pVert)
+static error_t generate_solution(edge_t* pOrigEdges, edge_t* pSolution, size_t edgeCnt, int16_t* pVert, size_t vertCnt)
 {
     error_t retCode = ERROR_OK; /*!< return code for error handling */
 
@@ -386,10 +380,10 @@ static error_t generate_solution(edge_t* pOrigEdges, edge_t* pSolution, size_t e
     memcpy(pSolution, pOrigEdges, sizeof(edge_t) * edgeCnt);
 
     // shuffle the edges
-    shuffle(pVert, edgeCnt);
+    shuffle(pVert, vertCnt);
 
     // remove the edges which have a smaller index for the start vertex than the end vertex
-    sortout_solution(pSolution, edgeCnt, pVert);
+    sortout_solution(pSolution, edgeCnt, pVert, vertCnt);
 
     return retCode;
 }
@@ -446,13 +440,15 @@ int main(int argc, char* argv[])
     // set the seed for the random number generator
     srand(get_random_seed());
 
+    size_t vertCnt = 0;
+
     // get the vertices
-    int16_t* pVert = get_vertices(edges, edgeCnt);
+    int16_t* pVert = get_vertices(edges, edgeCnt, &vertCnt);
 
     while (pSharedMem->flags.genActive)
     {
         // generate the solution
-        retCode |= generate_solution(edges, solution, edgeCnt, pVert);
+        retCode |= generate_solution(edges, solution, edgeCnt, pVert, vertCnt);
 
         // write the edges to the shared memory
         retCode |= write_solution(pSharedMem, &semaphores, solution, edgeCnt, &solSize);
