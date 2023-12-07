@@ -320,8 +320,10 @@ static void shuffle(int16_t pVert[], size_t vertCnt)
  * @param   pEdges      Pointer to the array of edges (read and write)
  * @param   edgeCnt     Number of edges
  * @param   pVert       Pointer to the array of vertices
+ * @param   vertCnt     Number of vertices
+ * @param   pSolSize    Number of edges in the solution
  */
-static void sortout_solution(edge_t pEdges[], size_t edgeCnt, int16_t* pVert, size_t vertCnt)
+static error_t sortout_solution(edge_t pEdges[], size_t edgeCnt, int16_t* pVert, size_t vertCnt)
 {
     edge_t* temp = calloc(sizeof(edge_t), edgeCnt);
     uint16_t idxV1 = 0U;
@@ -357,6 +359,8 @@ static void sortout_solution(edge_t pEdges[], size_t edgeCnt, int16_t* pVert, si
     memset(pEdges, 0, sizeof(edge_t) * edgeCnt);
     memcpy(pEdges, temp, sizeof(edge_t) * edgeCnt);
     free(temp);
+
+    return ERROR_OK;
 }
 
 /**

@@ -33,7 +33,7 @@
 #define SEM_NAME_READ "12220853_sem_read"
 #define SEM_NAME_WRITE "12220853_sem_write"
 
-#define BEST_SOL_MAX_EDGES 32U /*!< Maximum number of edges for the best solution */
+#define BEST_SOL_ARRAY_SIZE 32U /*!< Maximum number of edges for the best solution */
 
 /*!
  * @struct edge_t

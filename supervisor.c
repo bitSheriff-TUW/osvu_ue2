@@ -418,8 +418,8 @@ int main(int argc, char* argv[])
     gAppName = argv[0];
 
     // allocate the memory for the solutions
-    bestSol = calloc(sizeof(edge_t), BEST_SOL_MAX_EDGES);
-    currSol = calloc(sizeof(edge_t), BEST_SOL_MAX_EDGES);
+    bestSol = calloc(sizeof(edge_t), BEST_SOL_ARRAY_SIZE);
+    currSol = calloc(sizeof(edge_t), BEST_SOL_ARRAY_SIZE);
 
     if ((bestSol == NULL) || (currSol == NULL))
     {
@@ -464,7 +464,7 @@ int main(int argc, char* argv[])
     while ((false == gSigInt) && ((pSharedMem->flags.numSols < opts.limit) || (opts.limit == 0U)))
     {
         // reset the memory
-        memset(currSol, 0, sizeof(edge_t) * BEST_SOL_MAX_EDGES);
+        memset(currSol, 0, sizeof(edge_t) * BEST_SOL_ARRAY_SIZE);
         currSolSize = SIZE_MAX;
 
         // check if there is something to read, and further if semaphores are successful
