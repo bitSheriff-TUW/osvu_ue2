@@ -244,7 +244,7 @@ static error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* p
  *
  * @return  vert        Pointer to the array of vertices
  */
-static int16_t* get_vertices(edge_t* pEdges, ssize_t edgeCnt)
+static int16_t* get_vertices(edge_t* pEdges, size_t edgeCnt)
 {
     int16_t* vert = malloc(sizeof(int16_t) * edgeCnt * 2);
     memset(vert, -1, sizeof(int16_t) * edgeCnt * 2);
@@ -252,19 +252,23 @@ static int16_t* get_vertices(edge_t* pEdges, ssize_t edgeCnt)
     bool* isIncl = malloc(sizeof(bool) * edgeCnt * 2);
     memset(isIncl, false, sizeof(bool) * edgeCnt * 2);
 
+    size_t vertCnt = 0U;
+
     for (size_t i = 0; i < edgeCnt; i++)
     {
         edge_t currEdge = pEdges[i];
 
         if (!isIncl[currEdge.start])
         {
-            vert[i] = currEdge.start;
+            vert[vertCnt] = currEdge.start;
+            vertCnt++;
             isIncl[currEdge.start] = true;
         }
 
         if (!isIncl[currEdge.end])
         {
-            vert[i + edgeCnt / 2] = currEdge.end;
+            vert[vertCnt] = currEdge.end;
+            vertCnt++;
             isIncl[currEdge.end] = true;
         }
     }
