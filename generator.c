@@ -354,6 +354,12 @@ static error_t sortout_solution(edge_t pEdges[], size_t edgeCnt, int16_t* pVert,
             temp[tempIdx] = currEdge;
             tempIdx++;
         }
+
+        if(MAX_SOL_SIZE < tempIdx)
+        {
+            free(temp);
+            return ERROR_LIMIT;
+        }
     }
 
     memset(pEdges, 0, sizeof(edge_t) * edgeCnt);
@@ -387,7 +393,7 @@ static error_t generate_solution(edge_t* pOrigEdges, edge_t* pSolution, size_t e
     shuffle(pVert, vertCnt);
 
     // remove the edges which have a smaller index for the start vertex than the end vertex
-    sortout_solution(pSolution, edgeCnt, pVert, vertCnt);
+    retCode |= sortout_solution(pSolution, edgeCnt, pVert, vertCnt);
 
     return retCode;
 }
@@ -453,6 +459,15 @@ int main(int argc, char* argv[])
     {
         // generate the solution
         retCode |= generate_solution(edges, solution, edgeCnt, pVert, vertCnt);
+
+        // if the generated solution is too big, continue with new solution
+        if (ERROR_LIMIT == retCode)
+        {
+            // reset status
+            retCode = ERROR_OK;
+            continue;
+        }
+        
 
         // write the edges to the shared memory
         retCode |= write_solution(pSharedMem, &semaphores, solution, edgeCnt, &solSize);

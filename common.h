@@ -34,6 +34,7 @@
 #define SEM_NAME_WRITE "12220853_sem_write"
 
 #define BEST_SOL_ARRAY_SIZE 32U /*!< Maximum number of edges for the best solution */
+#define MAX_SOL_SIZE        8U  /*!< Maximum of edges for a accepted solution */
 
 /*!
  * @struct edge_t

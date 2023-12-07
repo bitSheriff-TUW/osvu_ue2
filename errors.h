@@ -21,3 +21,4 @@ typedef uint16_t error_t;
 #define ERROR_NULLPTR 0x40U         /*<! @brief Nullpointer Error */
 #define ERROR_SHMEM 0x80U           /*<! @brief Shared Memory Error */
 #define ERROR_SIGINT 0x100U         /*<! @brief Signal Happend */
+#define ERROR_LIMIT 0x200U          /*<! @brief Limit was reached */
