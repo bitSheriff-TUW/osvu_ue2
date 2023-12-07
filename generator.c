@@ -36,7 +36,7 @@ static void usage(char* msg)
  * @param   argv    Array of parameters
  * @param   argc    Number of parameters
  */
-static void readEdges(edge_t* pEdges[], char** argv, ssize_t argc)
+static void readEdges(edge_t* pEdges[], char** argv, size_t argc)
 {
     // check if edges were given, more than one is needed
     if (2 > argc)
@@ -45,7 +45,7 @@ static void readEdges(edge_t* pEdges[], char** argv, ssize_t argc)
     }
 
     // step through all the given parameters and parse the edges
-    for (ssize_t i = 1U; i < argc; i++)
+    for (size_t i = 1U; i < argc; i++)
     {
         // the vertices are separated with a dash, and the edges with a space
         if (sscanf(argv[i], "%hu-%hu", &((*pEdges)[i - 1].start), &((*pEdges)[i - 1].end)) < 0)
@@ -189,7 +189,7 @@ static error_t init_shmem(shared_mem_t** pSharedMem, int16_t* pFd)
  * @retval  ERROR_OK            Everything went fine
  * @retval  ERROR_SEMAPHORE     Something went wrong with the semaphores
  */
-static error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* pEdges, ssize_t edgeCnt, size_t* pWritten)
+static error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* pEdges, size_t edgeCnt, size_t* pWritten)
 {
     error_t retCode = ERROR_OK;                        /*!< return code for error handling */
     edge_t del = {DELIMITER_VERTEX, DELIMITER_VERTEX}; /*!< delimiter edge, gets written at the end */
@@ -198,7 +198,7 @@ static error_t write_solution(shared_mem_t* pSharedMem, sems_t* pSems, edge_t* p
 
     if (sem_wait(pSems->mutex_write) < 0) return ERROR_SEMAPHORE;
 
-    for (ssize_t i = 0U; i < edgeCnt; i++)
+    for (size_t i = 0U; i < edgeCnt; i++)
     {
         // only write edges that are not the delimiter, or default
         if (!is_edge_delimiter(pEdges[i]))
@@ -303,12 +303,12 @@ static uint16_t get_random_seed()
  * @param   pVert       Pointer to the array of vertices (read and write)
  * @param   edgeCnt     Number of edges
  */
-static void shuffle(int16_t pVert[], ssize_t edgeCnt)
+static void shuffle(int16_t pVert[], size_t edgeCnt)
 {
     // mix the vertices in the array
-    for (ssize_t i = 0U; i < edgeCnt; i++)
+    for (size_t i = 0U; i < edgeCnt; i++)
     {
-        ssize_t j = rand() % edgeCnt;
+        size_t j = rand() % edgeCnt;
         int16_t temp = (pVert)[i];
         (pVert)[i] = (pVert)[j];
         (pVert)[j] = temp;
@@ -335,12 +335,12 @@ static void sortout_solution(edge_t pEdges[], size_t edgeCnt, int16_t* pVert)
     uint16_t idxV2 = 0U;
     size_t tempIdx = 0U;
 
-    for (ssize_t i = 0U; i < edgeCnt; i++)
+    for (size_t i = 0U; i < edgeCnt; i++)
     {
         edge_t currEdge = pEdges[i];
 
         // search for the indexes of the vertices
-        for (ssize_t j = 0U; j < edgeCnt * 2; j++)
+        for (size_t j = 0U; j < edgeCnt * 2; j++)
         {
             if (pVert[j] == currEdge.start)
             {
@@ -419,7 +419,7 @@ int main(int argc, char* argv[])
 {
     debug("This is the generator\n", NULL);
     error_t retCode = ERROR_OK;                          /*!< return code for error handling */
-    ssize_t edgeCnt = argc - 1U;                         /*!< number of given edges */
+    size_t edgeCnt = argc - 1U;                         /*!< number of given edges */
     edge_t* edges = malloc(sizeof(edge_t) * edgeCnt);    /*!< memory to store all edges */
     edge_t* solution = malloc(sizeof(edge_t) * edgeCnt); /*!< memory to store a solution */
     sems_t semaphores = {0U};                            /*!< struct of all needed semaphores */
